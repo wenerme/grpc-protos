@@ -1,0 +1,41 @@
+- repo: dexidp/dex
+  sync:
+    api/: dex/api/
+- repo: googleapis/api-common-protos
+  sync:
+    google/:
+      dir: google/
+      delete: false
+- repo: googleapis/googleapis
+  sync:
+    google/:
+      dir: google/
+      delete: false
+    grafeas/: grafeas/
+- repo: temporalio/api
+  sync:
+    temporal/api/: temporal/api/
+- repo: uber/cadence-idl
+  sync:
+    proto/uber/: uber/
+- repo: yandex-cloud/cloudapi
+  sync:
+    yandex/: yandex/
+- repo: grpc/grpc
+  sync:
+    src/proto/grpc/:
+      dir: grpc/
+      exclude:
+      - 'testing/*'
+
+- repo: cosmos/cosmos-sdk
+  sync:
+    api/cosmos/: cosmos/
+
+- repo: chrislusf/seaweedfs
+  sync:
+    weed/pb/: seaweedfs/
+
+- repo: envoyproxy/data-plane-api
+  sync:
+    envoy/: envoy/
