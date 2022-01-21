@@ -1,41 +1,131 @@
 - repo: dexidp/dex
+  tags: infra
   sync:
     api/: dex/api/
 - repo: googleapis/api-common-protos
+  tags: core
   sync:
     google/:
       dir: google/
       delete: false
 - repo: googleapis/googleapis
+  tags: cloud
   sync:
     google/:
       dir: google/
       delete: false
     grafeas/: grafeas/
 - repo: temporalio/api
+  tags: workflow
   sync:
     temporal/api/: temporal/api/
 - repo: uber/cadence-idl
+  tags: workflow
   sync:
     proto/uber/: uber/
 - repo: yandex-cloud/cloudapi
+  tags: cloud
   sync:
     yandex/: yandex/
 - repo: grpc/grpc
+  tags: core
   sync:
     src/proto/grpc/:
       dir: grpc/
       exclude:
-      - 'testing/*'
+      - 'xds/*'
+    examples/protos/: examples/
 
 - repo: cosmos/cosmos-sdk
+  tags: blockchain
   sync:
-    api/cosmos/: cosmos/
+    # cosmos & tendermint
+    proto/: cosmos/
 
 - repo: chrislusf/seaweedfs
+  tags: storage
   sync:
     weed/pb/: seaweedfs/
 
 - repo: envoyproxy/data-plane-api
+  tags: infra
   sync:
     envoy/: envoy/
+
+- repo: containerd/containerd
+  tags: infra
+  sync:
+    api: containerd/
+
+- repo: open-telemetry/opentelemetry-proto
+  tags: infra
+  sync:
+    opentelemetry/: opentelemetry/
+
+
+- repo: cockroachdb/cockroach
+  tags: database
+  enabled: false # too large
+  sync:
+    pkg/roachpb/: cockroach/roachpb/
+    pkg/sql/: cockroach/sql/
+    pkg/kv/: cockroach/kv/
+    pkg/jobs/: cockroach/jobs/
+    pkg/server/: cockroach/server/
+    pkg/ccl/: cockroach/ccl/
+    pkg/storage/: cockroach/storage/
+    pkg/util/: cockroach/util/
+    pkg/ts/: cockroach/ts/
+    pkg/config/: cockroach/config/
+    pkg/startupmigrations/: cockroach/startupmigrations/
+    pkg/geo/: cockroach/geo/
+    pkg/blobs/: cockroach/blobs/
+    pkg/clusterversion/: cockroach/clusterversion/
+    pkg/gossip/: cockroach/gossip/
+    pkg/acceptance/: cockroach/acceptance/
+
+- repo: esphome/esphome
+  tags: iot
+  sync:
+    esphome/components/api/: esphome/
+
+- repo: dgraph-io/dgo
+  tags: database
+  sync:
+    protos/: dgraph/api/
+
+- repo: etcd-io/etcd
+  tags: infra
+  sync:
+    api/: etcd/
+
+- repo: kubernetes/cri-api
+  tags: infra,kubernetes
+  sync:
+    pkg/apis/runtime/: kubernetes/cri/runtime/
+
+- repo: envoyproxy/protoc-gen-validate
+  tags: core
+  sync:
+    validate/: validate/
+
+- repo: authzed/spicedb
+  tags: auth
+  sync:
+    proto/internal/: spicedb/
+
+- repo: markphelps/flipt
+  tags: service
+  sync:
+    rpc/flipt/: flipt/
+
+- repo: teamgram/teamgram-server
+  tags: chat
+  sync:
+    mtproto/: teamgram/mtproto/
+    messenger/biz_server/biz/core/: teamgram/messenger/
+
+- repo: hashicorp/consul
+  tags: infra
+  sync:
+    proto/: consul/proto/

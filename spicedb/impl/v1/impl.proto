@@ -1,0 +1,44 @@
+syntax = "proto3";
+package impl.v1;
+
+option go_package = "github.com/authzed/spicedb/internal/proto/impl/v1";
+
+message DecodedZookie {
+  uint32 version = 1;
+  message V1Zookie { uint64 revision = 1; }
+  message V2Zookie { string revision = 1; }
+  oneof version_oneof {
+    V1Zookie v1 = 2;
+    V2Zookie v2 = 3;
+  }
+}
+
+message DecodedZedToken {
+  message V1Zookie { uint64 revision = 1; }
+  message V1ZedToken { string revision = 1; }
+  oneof version_oneof {
+    V1Zookie deprecated_v1_zookie = 2;
+    V1ZedToken v1 = 3;
+  }
+}
+
+message DocComment { string comment = 1; }
+
+message RelationMetadata {
+  enum RelationKind {
+    UNKNOWN_KIND = 0;
+    RELATION = 1;
+    PERMISSION = 2;
+  }
+
+  RelationKind kind = 1;
+}
+
+message NamespaceAndRevision {
+  string namespace_name = 1;
+  string revision = 2;
+}
+
+message V1Alpha1Revision {
+  repeated NamespaceAndRevision ns_revisions = 1;
+}
