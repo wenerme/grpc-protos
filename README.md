@@ -36,6 +36,8 @@ repo | stats | tags
 [yandex-cloud/cloudapi](https://github.com/yandex-cloud/cloudapi) | ![stars](https://img.shields.io/github/stars/yandex-cloud/cloudapi) | cloud
 <!-- END REPO -->
 
+> Kubernetes's gRPC is generated from Golang
+
 ## Dev
 
 ```bash

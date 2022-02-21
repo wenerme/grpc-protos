@@ -191,6 +191,19 @@ message GetWorkflowExecutionHistoryResponse {
     bool archived = 4;
 }
 
+message GetWorkflowExecutionHistoryReverseRequest {
+    string namespace = 1;
+    temporal.api.common.v1.WorkflowExecution execution = 2;
+    int32 maximum_page_size = 3;
+    bytes next_page_token = 4;
+}
+
+message GetWorkflowExecutionHistoryReverseResponse {
+    temporal.api.history.v1.History history = 1;
+    // Will be set if there are more history events than were included in this response
+    bytes next_page_token = 3;
+}
+
 message PollWorkflowTaskQueueRequest {
     string namespace = 1;
     temporal.api.taskqueue.v1.TaskQueue task_queue = 2;
@@ -481,7 +494,9 @@ message RequestCancelWorkflowExecutionRequest {
     string identity = 3;
     // Used to de-dupe cancellation requests
     string request_id = 4;
-    // Should be removed. Appears unused.
+    // If set, this call will error if the most recent (if no run id is set on
+    // `workflow_execution`), or specified (if it is) workflow execution is not part of the same
+    // execution chain as this id.
     string first_execution_run_id = 5;
 }
 
@@ -572,7 +587,9 @@ message TerminateWorkflowExecutionRequest {
     temporal.api.common.v1.Payloads details = 4;
     // The identity of the worker/client
     string identity = 5;
-    // Should be removed. Appears unused.
+    // If set, this call will error if the most recent (if no run id is set on
+    // `workflow_execution`), or specified (if it is) workflow execution is not part of the same
+    // execution chain as this id.
     string first_execution_run_id = 6;
 }
 
@@ -708,6 +725,7 @@ message DescribeWorkflowExecutionResponse {
     temporal.api.workflow.v1.WorkflowExecutionInfo workflow_execution_info = 2;
     repeated temporal.api.workflow.v1.PendingActivityInfo pending_activities = 3;
     repeated temporal.api.workflow.v1.PendingChildExecutionInfo pending_children = 4;
+    temporal.api.workflow.v1.PendingWorkflowTaskInfo pending_workflow_task = 5;
 }
 
 message DescribeTaskQueueRequest {
@@ -740,7 +758,6 @@ message GetClusterInfoResponse {
 }
 
 message GetSystemInfoRequest {
-    string namespace = 1;
 }
 
 message GetSystemInfoResponse {

@@ -58,8 +58,9 @@ function genSyncSource(src: SourceOptions) {
     enabled === false ? "if false; then" : "",
     `echo -e "\\n# synching ${repo}"`,
     // `[ ! -e ${dir} ] || git -C ${dir} remote set-url origin ${git}`,
-    `[ ! -e ${dir} ] || git -C ${dir} pull`,
-    `[ -e ${dir} ] || git clone --depth 10 ${git} ${dir}`,
+    // update shallow clone
+    `[ ! -e ${dir} ] || ( git -C ${dir} fetch --depth 1 && git -C ${dir} reset --hard origin )`,
+    `[ -e ${dir} ] || git clone --depth 1 ${git} ${dir}`,
     `mkdir -p ${Object.values(sync)
       .map((v) => v.dir)
       .join(" ")}`,
