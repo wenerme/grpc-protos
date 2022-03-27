@@ -13,19 +13,27 @@ echo -e "\n# synching googleapis/api-common-protos"
 [ -e gits/googleapis/api-common-protos ] || git clone --depth 1 git@github.com:googleapis/api-common-protos.git gits/googleapis/api-common-protos
 mkdir -p google/
 test -e gits/googleapis/api-common-protos/google/
-rsync -avm    --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/googleapis/api-common-protos/google/ google/
+rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/googleapis/api-common-protos/google/ google/
 test -z "$(find google/ -maxdepth 0 -empty)"
 
 echo -e "\n# synching googleapis/googleapis"
 [ ! -e gits/googleapis/googleapis ] || ( git -C gits/googleapis/googleapis fetch --depth 1 && git -C gits/googleapis/googleapis reset --hard origin )
 [ -e gits/googleapis/googleapis ] || git clone --depth 1 git@github.com:googleapis/googleapis.git gits/googleapis/googleapis
-mkdir -p google/ grafeas/
+mkdir -p googleapis/google/ googleapis/grafeas/
 test -e gits/googleapis/googleapis/google/
-rsync -avm    --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/googleapis/googleapis/google/ google/
-test -z "$(find google/ -maxdepth 0 -empty)"
+rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/googleapis/googleapis/google/ googleapis/google/
+test -z "$(find googleapis/google/ -maxdepth 0 -empty)"
 test -e gits/googleapis/googleapis/grafeas/
-rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/googleapis/googleapis/grafeas/ grafeas/
-test -z "$(find grafeas/ -maxdepth 0 -empty)"
+rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/googleapis/googleapis/grafeas/ googleapis/grafeas/
+test -z "$(find googleapis/grafeas/ -maxdepth 0 -empty)"
+
+echo -e "\n# synching google/perfetto"
+[ ! -e gits/google/perfetto ] || ( git -C gits/google/perfetto fetch --depth 1 && git -C gits/google/perfetto reset --hard origin )
+[ -e gits/google/perfetto ] || git clone --depth 1 git@github.com:google/perfetto.git gits/google/perfetto
+mkdir -p perfetto/
+test -e gits/google/perfetto/protos/
+rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/google/perfetto/protos/ perfetto/
+test -z "$(find perfetto/ -maxdepth 0 -empty)"
 
 echo -e "\n# synching temporalio/api"
 [ ! -e gits/temporalio/api ] || ( git -C gits/temporalio/api fetch --depth 1 && git -C gits/temporalio/api reset --hard origin )
@@ -212,17 +220,6 @@ mkdir -p flipt/
 test -e gits/markphelps/flipt/rpc/flipt/
 rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/markphelps/flipt/rpc/flipt/ flipt/
 test -z "$(find flipt/ -maxdepth 0 -empty)"
-
-echo -e "\n# synching teamgram/teamgram-server"
-[ ! -e gits/teamgram/teamgram-server ] || ( git -C gits/teamgram/teamgram-server fetch --depth 1 && git -C gits/teamgram/teamgram-server reset --hard origin )
-[ -e gits/teamgram/teamgram-server ] || git clone --depth 1 git@github.com:teamgram/teamgram-server.git gits/teamgram/teamgram-server
-mkdir -p teamgram/mtproto/ teamgram/messenger/
-test -e gits/teamgram/teamgram-server/mtproto/
-rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/teamgram/teamgram-server/mtproto/ teamgram/mtproto/
-test -z "$(find teamgram/mtproto/ -maxdepth 0 -empty)"
-test -e gits/teamgram/teamgram-server/messenger/biz_server/biz/core/
-rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/teamgram/teamgram-server/messenger/biz_server/biz/core/ teamgram/messenger/
-test -z "$(find teamgram/messenger/ -maxdepth 0 -empty)"
 
 echo -e "\n# synching hashicorp/consul"
 [ ! -e gits/hashicorp/consul ] || ( git -C gits/hashicorp/consul fetch --depth 1 && git -C gits/hashicorp/consul reset --hard origin )

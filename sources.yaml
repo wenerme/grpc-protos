@@ -7,14 +7,20 @@
   sync:
     google/:
       dir: google/
-      delete: false
 - repo: googleapis/googleapis
   tags: cloud
   sync:
-    google/:
-      dir: google/
-      delete: false
-    grafeas/: grafeas/
+    google/: googleapis/google/
+    grafeas/: googleapis/grafeas/
+- repo: google/perfetto
+  tags: infra
+  sync:
+    protos/: perfetto/
+# - repo: google/gvisor
+#   tags: infra
+#   sync:
+#     pkg/: gvisor/
+
 - repo: temporalio/api
   tags: workflow
   sync:
@@ -33,7 +39,7 @@
     src/proto/grpc/:
       dir: grpc/
       exclude:
-      - 'xds/*'
+        - "xds/*"
     examples/protos/: examples/
 
 - repo: cosmos/cosmos-sdk
@@ -61,7 +67,6 @@
   tags: infra
   sync:
     opentelemetry/: opentelemetry/
-
 
 - repo: cockroachdb/cockroach
   tags: database
@@ -119,11 +124,11 @@
   sync:
     rpc/flipt/: flipt/
 
-- repo: teamgram/teamgram-server
-  tags: chat
-  sync:
-    mtproto/: teamgram/mtproto/
-    messenger/biz_server/biz/core/: teamgram/messenger/
+# - repo: teamgram/teamgram-server
+#   tags: chat
+#   sync:
+#     mtproto/: teamgram/mtproto/
+#     messenger/biz_server/biz/core/: teamgram/messenger/
 
 - repo: hashicorp/consul
   tags: infra

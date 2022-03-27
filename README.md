@@ -30,7 +30,6 @@ repo | stats | tags
 [kubernetes/cri-api](https://github.com/kubernetes/cri-api) | ![stars](https://img.shields.io/github/stars/kubernetes/cri-api) | infra ,kubernetes
 [markphelps/flipt](https://github.com/markphelps/flipt) | ![stars](https://img.shields.io/github/stars/markphelps/flipt) | service
 [open-telemetry/opentelemetry-proto](https://github.com/open-telemetry/opentelemetry-proto) | ![stars](https://img.shields.io/github/stars/open-telemetry/opentelemetry-proto) | infra
-[teamgram/teamgram-server](https://github.com/teamgram/teamgram-server) | ![stars](https://img.shields.io/github/stars/teamgram/teamgram-server) | chat
 [temporalio/api](https://github.com/temporalio/api) | ![stars](https://img.shields.io/github/stars/temporalio/api) | workflow
 [uber/cadence-idl](https://github.com/uber/cadence-idl) | ![stars](https://img.shields.io/github/stars/uber/cadence-idl) | workflow
 [yandex-cloud/cloudapi](https://github.com/yandex-cloud/cloudapi) | ![stars](https://img.shields.io/github/stars/yandex-cloud/cloudapi) | cloud
