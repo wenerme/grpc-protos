@@ -243,11 +243,10 @@ message ListClustersRequest {
   // The maximum number of results per page to return. If the number of available
   // results is larger than [page_size], the service returns a [ListClustersResponse.next_page_token]
   // that can be used to get the next page of results in subsequent list requests.
-
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token. To get the next page of results, set [page_token]
-  // to the [ListClustersResponse.next_page_token] returned by a previous list request.
+  // to the [ListClustersResponse.next_page_token] returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 
   // A filter expression that filters resources listed in the response.
@@ -521,6 +520,8 @@ message ListClusterLogsRequest {
     MONGOD = 1;
     MONGOS = 2;
     MONGOCFG = 3;
+    // MongoDB Enterprise audit logs
+    AUDIT = 4;
   }
 
   // Start timestamp for the logs request, in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt) text format.
@@ -532,11 +533,10 @@ message ListClusterLogsRequest {
   // The maximum number of results per page to return. If the number of available
   // results is larger than [page_size], the service returns a [ListClusterLogsResponse.next_page_token]
   // that can be used to get the next page of results in subsequent list requests.
-
   int64 page_size = 6 [(value) = "<=1000"];
 
   // Page token. To get the next page of results, set [page_token] to the
-  // [ListClusterLogsResponse.next_page_token] returned by a previous list request.
+  // [ListClusterLogsResponse.next_page_token] returned by the previous list request.
   string page_token = 7 [(length) = "<=100"];
 }
 
@@ -579,6 +579,8 @@ message StreamClusterLogsRequest {
     MONGOD = 1;
     MONGOS = 2;
     MONGOCFG = 3;
+    // MongoDB Enterprise audit logs
+    AUDIT = 4;
   }
 
   // Start timestamp for the logs request.
@@ -609,11 +611,10 @@ message ListClusterOperationsRequest {
   // The maximum number of results per page to return. If the number of available
   // results is larger than [page_size], the service returns a [ListClusterOperationsResponse.next_page_token]
   // that can be used to get the next page of results in subsequent list requests.
-
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token. To get the next page of results, set [page_token] to the
-  // [ListClusterOperationsResponse.next_page_token] returned by a previous list request.
+  // [ListClusterOperationsResponse.next_page_token] returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -636,11 +637,10 @@ message ListClusterBackupsRequest {
   // The maximum number of results per page to return. If the number of available
   // results is larger than [page_size], the service returns a [ListClusterBackupsResponse.next_page_token]
   // that can be used to get the next page of results in subsequent list requests.
-
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token.  To get the next page of results, set [page_token] to the
-  // [ListClusterBackupsResponse.next_page_token] returned by a previous list request.
+  // [ListClusterBackupsResponse.next_page_token] returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -663,11 +663,10 @@ message ListClusterHostsRequest {
   // The maximum number of results per page to return. If the number of available
   // results is larger than [page_size], the service returns a [ListClusterHostsResponse.next_page_token]
   // that can be used to get the next page of results in subsequent list requests.
-
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token. To get the next page of results, set [page_token] to the
-  // [ListClusterHostsResponse.next_page_token] returned by a previous list request.
+  // [ListClusterHostsResponse.next_page_token] returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -774,7 +773,7 @@ message ListClusterShardsRequest {
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token. To get the next page of results, set [page_token] to the
-  // [ListClusterShardsResponse.next_page_token] returned by a previous list request.
+  // [ListClusterShardsResponse.next_page_token] returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 

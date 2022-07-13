@@ -228,4 +228,12 @@ mkdir -p consul/proto/
 test -e gits/hashicorp/consul/proto/
 rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/hashicorp/consul/proto/ consul/proto/
 test -z "$(find consul/proto/ -maxdepth 0 -empty)"
+
+echo -e "\n# synching appleboy/gorush"
+[ ! -e gits/appleboy/gorush ] || ( git -C gits/appleboy/gorush fetch --depth 1 && git -C gits/appleboy/gorush reset --hard origin )
+[ -e gits/appleboy/gorush ] || git clone --depth 1 git@github.com:appleboy/gorush.git gits/appleboy/gorush
+mkdir -p gorush/proto/
+test -e gits/appleboy/gorush/rpc/proto/
+rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/appleboy/gorush/rpc/proto/ gorush/proto/
+test -z "$(find gorush/proto/ -maxdepth 0 -empty)"
 git add .

@@ -773,7 +773,7 @@ message InspectConfig {
   FindingLimits limits = 3;
 
   // When true, a contextual quote from the data that triggered a finding is
-  // included in the response; see Finding.quote.
+  // included in the response; see [Finding.quote][google.privacy.dlp.v2.Finding.quote].
   // This is not used for data profiling.
   bool include_quote = 4;
 
@@ -1554,6 +1554,201 @@ message InfoTypeDescription {
   // Description of the infotype. Translated when language is provided in the
   // request.
   string description = 4;
+
+  // The category of the infoType.
+  repeated InfoTypeCategory categories = 10;
+}
+
+// Classification of infoTypes to organize them according to geographic
+// location, industry, and data type.
+message InfoTypeCategory {
+  // Enum of the current locations.
+  // We might add more locations in the future.
+  enum LocationCategory {
+    // Unused location
+    LOCATION_UNSPECIFIED = 0;
+
+    // The infoType is not issued by or tied to a specific region, but is used
+    // almost everywhere.
+    GLOBAL = 1;
+
+    // The infoType is typically used in Argentina.
+    ARGENTINA = 2;
+
+    // The infoType is typically used in Australia.
+    AUSTRALIA = 3;
+
+    // The infoType is typically used in Belgium.
+    BELGIUM = 4;
+
+    // The infoType is typically used in Brazil.
+    BRAZIL = 5;
+
+    // The infoType is typically used in Canada.
+    CANADA = 6;
+
+    // The infoType is typically used in Chile.
+    CHILE = 7;
+
+    // The infoType is typically used in China.
+    CHINA = 8;
+
+    // The infoType is typically used in Colombia.
+    COLOMBIA = 9;
+
+    // The infoType is typically used in Denmark.
+    DENMARK = 10;
+
+    // The infoType is typically used in France.
+    FRANCE = 11;
+
+    // The infoType is typically used in Finland.
+    FINLAND = 12;
+
+    // The infoType is typically used in Germany.
+    GERMANY = 13;
+
+    // The infoType is typically used in Hong Kong.
+    HONG_KONG = 14;
+
+    // The infoType is typically used in India.
+    INDIA = 15;
+
+    // The infoType is typically used in Indonesia.
+    INDONESIA = 16;
+
+    // The infoType is typically used in Ireland.
+    IRELAND = 17;
+
+    // The infoType is typically used in Israel.
+    ISRAEL = 18;
+
+    // The infoType is typically used in Italy.
+    ITALY = 19;
+
+    // The infoType is typically used in Japan.
+    JAPAN = 20;
+
+    // The infoType is typically used in Korea.
+    KOREA = 21;
+
+    // The infoType is typically used in Mexico.
+    MEXICO = 22;
+
+    // The infoType is typically used in the Netherlands.
+    THE_NETHERLANDS = 23;
+
+    // The infoType is typically used in Norway.
+    NORWAY = 24;
+
+    // The infoType is typically used in Paraguay.
+    PARAGUAY = 25;
+
+    // The infoType is typically used in Peru.
+    PERU = 26;
+
+    // The infoType is typically used in Poland.
+    POLAND = 27;
+
+    // The infoType is typically used in Portugal.
+    PORTUGAL = 28;
+
+    // The infoType is typically used in Singapore.
+    SINGAPORE = 29;
+
+    // The infoType is typically used in South Africa.
+    SOUTH_AFRICA = 30;
+
+    // The infoType is typically used in Spain.
+    SPAIN = 31;
+
+    // The infoType is typically used in Sweden.
+    SWEDEN = 32;
+
+    // The infoType is typically used in Taiwan.
+    TAIWAN = 33;
+
+    // The infoType is typically used in Thailand.
+    THAILAND = 34;
+
+    // The infoType is typically used in Turkey.
+    TURKEY = 35;
+
+    // The infoType is typically used in the United Kingdom.
+    UNITED_KINGDOM = 36;
+
+    // The infoType is typically used in the United States.
+    UNITED_STATES = 37;
+
+    // The infoType is typically used in Uruguay.
+    URUGUAY = 38;
+
+    // The infoType is typically used in Venezuela.
+    VENEZUELA = 39;
+
+    // The infoType is typically used in Google internally.
+    INTERNAL = 40;
+  }
+
+  // Enum of the current industries in the category.
+  // We might add more industries in the future.
+  enum IndustryCategory {
+    // Unused industry
+    INDUSTRY_UNSPECIFIED = 0;
+
+    // The infoType is typically used in the finance industry.
+    FINANCE = 1;
+
+    // The infoType is typically used in the health industry.
+    HEALTH = 2;
+
+    // The infoType is typically used in the telecommunications industry.
+    TELECOMMUNICATIONS = 3;
+  }
+
+  // Enum of the current types in the category.
+  // We might add more types in the future.
+  enum TypeCategory {
+    // Unused type
+    TYPE_UNSPECIFIED = 0;
+
+    // Personally identifiable information, for example, a
+    // name or phone number
+    PII = 1;
+
+    // Personally identifiable information that is especially sensitive, for
+    // example, a passport number.
+    SPII = 2;
+
+    // Attributes that can partially identify someone, especially in
+    // combination with other attributes, like age, height, and gender.
+    DEMOGRAPHIC = 3;
+
+    // Confidential or secret information, for example, a password.
+    CREDENTIAL = 4;
+
+    // An identification document issued by a government.
+    GOVERNMENT_ID = 5;
+
+    // A document, for example, a resume or source code.
+    DOCUMENT = 6;
+
+    // Information that is not sensitive on its own, but provides details about
+    // the circumstances surrounding an entity or an event.
+    CONTEXTUAL_INFORMATION = 7;
+  }
+
+  oneof category {
+    // The region or country that issued the ID or document represented by the
+    // infoType.
+    LocationCategory location_category = 1;
+
+    // The group of relevant businesses where this infoType is commonly used
+    IndustryCategory industry_category = 2;
+
+    // The class of identifiers where this infoType belongs
+    TypeCategory type_category = 3;
+  }
 }
 
 // Request for the list of infoTypes.
@@ -3586,6 +3781,134 @@ message InspectJobConfig {
   repeated Action actions = 4;
 }
 
+// A task to execute when a data profile has been generated.
+message DataProfileAction {
+  // If set, the detailed data profiles will be persisted to the location
+  // of your choice whenever updated.
+  message Export {
+    // Store all table and column profiles in an existing table or a new table
+    // in an existing dataset. Each re-generation will result in a new row in
+    // BigQuery.
+    BigQueryTable profile_table = 1;
+  }
+
+  // Send a Pub/Sub message into the given Pub/Sub topic to connect other
+  // systems to data profile generation. The message payload data will
+  // be the byte serialization of `DataProfilePubSubMessage`.
+  message PubSubNotification {
+    // The levels of detail that can be included in the Pub/Sub message.
+    enum DetailLevel {
+      // Unused.
+      DETAIL_LEVEL_UNSPECIFIED = 0;
+
+      // The full table data profile.
+      TABLE_PROFILE = 1;
+
+      // The resource name of the table.
+      RESOURCE_NAME = 2;
+    }
+
+    // Cloud Pub/Sub topic to send notifications to.
+    // Format is projects/{project}/topics/{topic}.
+    string topic = 1;
+
+    // The type of event that triggers a Pub/Sub. At most one
+    // `PubSubNotification` per EventType is permitted.
+    EventType event = 2;
+
+    // Conditions (e.g., data risk or sensitivity level) for triggering a
+    // Pub/Sub.
+    DataProfilePubSubCondition pubsub_condition = 3;
+
+    // How much data to include in the Pub/Sub message. If the user wishes to
+    // limit the size of the message, they can use resource_name and fetch the
+    // profile fields they wish to. Per table profile (not per column).
+    DetailLevel detail_of_message = 4;
+  }
+
+  // Types of event that can trigger an action.
+  enum EventType {
+    // Unused.
+    EVENT_TYPE_UNSPECIFIED = 0;
+
+    // New profile (not a re-profile).
+    NEW_PROFILE = 1;
+
+    // Changed one of the following profile metrics:
+    // * Table data risk score
+    // * Table sensitivity score
+    // * Table resource visibility
+    // * Table encryption type
+    // * Table predicted infoTypes
+    // * Table other infoTypes
+    CHANGED_PROFILE = 2;
+
+    // Table data risk score or sensitivity score increased.
+    SCORE_INCREASED = 3;
+
+    // A user (non-internal) error occurred.
+    ERROR_CHANGED = 4;
+  }
+
+  oneof action {
+    // Export data profiles into a provided location.
+    Export export_data = 1;
+
+    // Publish a message into the Pub/Sub topic.
+    PubSubNotification pub_sub_notification = 2;
+  }
+}
+
+// Configuration for setting up a job to scan resources for profile generation.
+// Only one data profile configuration may exist per organization, folder,
+// or project.
+//
+// The generated data profiles are retained according to the
+// [data retention policy]
+// (https://cloud.google.com/dlp/docs/data-profiles#retention).
+message DataProfileJobConfig {
+  // The data to scan.
+  DataProfileLocation location = 1;
+
+  // The project that will run the scan. The DLP service
+  // account that exists within this project must have access to all resources
+  // that are profiled, and the Cloud DLP API must be enabled.
+  string project_id = 5;
+
+  // Detection logic for profile generation.
+  //
+  // Not all template features are used by profiles. FindingLimits,
+  // include_quote and exclude_info_types have no impact on
+  // data profiling.
+  //
+  // Multiple templates may be provided if there is data in multiple regions.
+  // At most one template must be specified per-region (including "global").
+  // Each region is scanned using the applicable template. If no region-specific
+  // template is specified, but a "global" template is specified, it will be
+  // copied to that region and used instead. If no global or region-specific
+  // template is provided for a region with data, that region's data will not be
+  // scanned.
+  //
+  // For more information, see
+  // https://cloud.google.com/dlp/docs/data-profiles#data_residency.
+  repeated string inspect_templates = 7;
+
+  // Actions to execute at the completion of the job.
+  repeated DataProfileAction data_profile_actions = 6;
+}
+
+// The data that will be profiled.
+message DataProfileLocation {
+  // The location to be scanned.
+  oneof location {
+    // The ID of an organization to scan.
+    int64 organization_id = 1;
+
+    // The ID of the Folder within an organization to scan.
+    int64 folder_id = 2;
+  }
+}
+
 // Combines all of the information about a DLP job.
 message DlpJob {
   option (google.api.resource) = {
@@ -4424,4 +4747,275 @@ enum StoredInfoTypeState {
   // user-controlled storage were modified. To fix an invalid StoredInfoType,
   // use the `UpdateStoredInfoType` method to create a new version.
   INVALID = 4;
+}
+
+// Score is a summary of all elements in the data profile.
+// A higher number means more sensitive.
+message SensitivityScore {
+  // Various score levels for resources.
+  enum SensitivityScoreLevel {
+    // Unused.
+    SENSITIVITY_SCORE_UNSPECIFIED = 0;
+
+    // No sensitive information detected. Limited access.
+    SENSITIVITY_LOW = 10;
+
+    // Medium risk - PII, potentially sensitive data, or fields with free-text
+    // data that are at higher risk of having intermittent sensitive data.
+    // Consider limiting access.
+    SENSITIVITY_MODERATE = 20;
+
+    // High risk – SPII may be present. Exfiltration of data may lead to user
+    // data loss. Re-identification of users may be possible. Consider limiting
+    // usage and or removing SPII.
+    SENSITIVITY_HIGH = 30;
+  }
+
+  // The score applied to the resource.
+  SensitivityScoreLevel score = 1;
+}
+
+// Score is a summary of all elements in the data profile.
+// A higher number means more risky.
+message DataRiskLevel {
+  // Various score levels for resources.
+  enum DataRiskLevelScore {
+    // Unused.
+    RISK_SCORE_UNSPECIFIED = 0;
+
+    // Low risk - Lower indication of sensitive data that appears to have
+    // additional access restrictions in place or no indication of sensitive
+    // data found.
+    RISK_LOW = 10;
+
+    // Medium risk - Sensitive data may be present but additional access or fine
+    // grain access restrictions appears to be present.  Consider limiting
+    // access even further or transforming data to mask.
+    RISK_MODERATE = 20;
+
+    // High risk – SPII may be present. Access controls may include public
+    // ACLs. Exfiltration of data may lead to user data loss. Re-identification
+    // of users may be possible. Consider limiting usage and or removing SPII.
+    RISK_HIGH = 30;
+  }
+
+  // The score applied to the resource.
+  DataRiskLevelScore score = 1;
+}
+
+// How broadly a resource has been shared. New items may be added over time.
+// A higher number means more restricted.
+enum ResourceVisibility {
+  // Unused.
+  RESOURCE_VISIBILITY_UNSPECIFIED = 0;
+
+  // Visible to any user.
+  RESOURCE_VISIBILITY_PUBLIC = 10;
+
+  // Visible only to specific users.
+  RESOURCE_VISIBILITY_RESTRICTED = 20;
+}
+
+// Snapshot of the configurations used to generate the profile.
+message DataProfileConfigSnapshot {
+  // A copy of the inspection config used to generate this profile. This
+  // is a copy of the inspect_template specified in `DataProfileJobConfig`.
+  InspectConfig inspect_config = 2;
+
+  // A copy of the configuration used to generate this profile.
+  DataProfileJobConfig data_profile_job = 3;
+}
+
+// The profile for a scanned table.
+message TableDataProfile {
+  // Possible states of a profile. New items may be added.
+  enum State {
+    // Unused.
+    STATE_UNSPECIFIED = 0;
+
+    // The profile is currently running. Once a profile has finished it will
+    // transition to DONE.
+    RUNNING = 1;
+
+    // The profile is no longer generating.
+    // If profile_status.status.code is 0, the profile succeeded, otherwise, it
+    // failed.
+    DONE = 2;
+  }
+
+  // The name of the profile.
+  string name = 1;
+
+  // The resource name to the project data profile for this table.
+  string project_data_profile = 2;
+
+  // The GCP project ID that owns the BigQuery dataset.
+  string dataset_project_id = 24;
+
+  // The BigQuery location where the dataset's data is stored.
+  // See https://cloud.google.com/bigquery/docs/locations for supported
+  // locations.
+  string dataset_location = 29;
+
+  // The BigQuery dataset ID.
+  string dataset_id = 25;
+
+  // The BigQuery table ID.
+  string table_id = 26;
+
+  // The resource name of the table.
+  // https://cloud.google.com/apis/design/resource_names#full_resource_name
+  string full_resource = 3;
+
+  // Success or error status from the most recent profile generation attempt.
+  // May be empty if the profile is still being generated.
+  ProfileStatus profile_status = 21;
+
+  // State of a profile.
+  State state = 22;
+
+  // The sensitivity score of this table.
+  SensitivityScore sensitivity_score = 5;
+
+  // The data risk level of this table.
+  DataRiskLevel data_risk_level = 6;
+
+  // The infoTypes predicted from this table's data.
+  repeated InfoTypeSummary predicted_info_types = 27;
+
+  // Other infoTypes found in this table's data.
+  repeated OtherInfoTypeSummary other_info_types = 28;
+
+  // The snapshot of the configurations used to generate the profile.
+  DataProfileConfigSnapshot config_snapshot = 7;
+
+  // The time when this table was last modified
+  google.protobuf.Timestamp last_modified_time = 8;
+
+  // Optional. The time when this table expires.
+  google.protobuf.Timestamp expiration_time = 9;
+
+  // The number of columns profiled in the table.
+  int64 scanned_column_count = 10;
+
+  // The number of columns skipped in the table because of an error.
+  int64 failed_column_count = 11;
+
+  // The size of the table when the profile was generated.
+  int64 table_size_bytes = 12;
+
+  // Number of rows in the table when the profile was generated.
+  int64 row_count = 13;
+
+  // How the table is encrypted.
+  EncryptionStatus encryption_status = 14;
+
+  // How broadly a resource has been shared.
+  ResourceVisibility resource_visibility = 15;
+
+  // The last time the profile was generated.
+  google.protobuf.Timestamp profile_last_generated = 16;
+
+  // The labels applied to the resource at the time the profile was generated.
+  map<string, string> resource_labels = 17;
+
+  // The time at which the table was created.
+  google.protobuf.Timestamp create_time = 23;
+}
+
+message ProfileStatus {
+  // Profiling status code and optional message
+  google.rpc.Status status = 1;
+
+  // Time when the profile generation status was updated
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// How a resource is encrypted.
+enum EncryptionStatus {
+  // Unused.
+  ENCRYPTION_STATUS_UNSPECIFIED = 0;
+
+  // Google manages server-side encryption keys on your behalf.
+  ENCRYPTION_GOOGLE_MANAGED = 1;
+
+  // Customer provides the key.
+  ENCRYPTION_CUSTOMER_MANAGED = 2;
+}
+
+// The infoType details for this column.
+message InfoTypeSummary {
+  // The infoType.
+  InfoType info_type = 1;
+}
+
+// Infotype details for other infoTypes found within a column.
+message OtherInfoTypeSummary {
+  // The other infoType.
+  InfoType info_type = 1;
+}
+
+// A condition for determining whether a PubSub should be triggered.
+message DataProfilePubSubCondition {
+  // Various score levels for resources.
+  enum ProfileScoreBucket {
+    // Unused.
+    PROFILE_SCORE_BUCKET_UNSPECIFIED = 0;
+
+    // High risk/sensitivity detected.
+    HIGH = 1;
+
+    // Medium or high risk/sensitivity detected.
+    MEDIUM_OR_HIGH = 2;
+  }
+
+  // A condition consisting of a value.
+  message PubSubCondition {
+    // The value for the condition to trigger.
+    oneof value {
+      // The minimum data risk score that triggers the condition.
+      ProfileScoreBucket minimum_risk_score = 1;
+
+      // The minimum sensitivity level that triggers the condition.
+      ProfileScoreBucket minimum_sensitivity_score = 2;
+    }
+  }
+
+  // An expression, consisting of an operator and conditions.
+  message PubSubExpressions {
+    // Logical operators for conditional checks.
+    enum PubSubLogicalOperator {
+      // Unused.
+      LOGICAL_OPERATOR_UNSPECIFIED = 0;
+
+      // Conditional OR.
+      OR = 1;
+
+      // Conditional AND.
+      AND = 2;
+    }
+
+    // The operator to apply to the collection of conditions.
+    PubSubLogicalOperator logical_operator = 1;
+
+    // Conditions to apply to the expression.
+    repeated PubSubCondition conditions = 2;
+  }
+
+  // An expression.
+  PubSubExpressions expressions = 1;
+}
+
+// The message that will be published to a Pub/Sub topic.
+// To receive a message of protocol buffer schema type, convert the message data
+// to an object of this proto class.
+// https://cloud.google.com/pubsub/docs/samples/pubsub-subscribe-proto-messages
+message DataProfilePubSubMessage {
+  // If `DetailLevel` is `TABLE_PROFILE` this will be fully populated.
+  // Otherwise, if `DetailLevel` is `RESOURCE_NAME`, then only `name` and
+  // `full_resource` will be populated.
+  TableDataProfile profile = 1;
+
+  // The event that caused the Pub/Sub message to be sent.
+  DataProfileAction.EventType event = 2;
 }

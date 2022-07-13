@@ -134,3 +134,8 @@
   tags: infra
   sync:
     proto/: consul/proto/
+
+- repo: appleboy/gorush
+  tags: service
+  sync:
+    rpc/proto/: gorush/proto/

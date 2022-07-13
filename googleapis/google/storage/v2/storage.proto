@@ -175,13 +175,37 @@ service Storage {
   // true, or else it is an error.
   //
   // For a resumable write, the client should instead call
-  // `StartResumableWrite()` and provide that method an `WriteObjectSpec.`
+  // `StartResumableWrite()`, populating a `WriteObjectSpec` into that request.
   // They should then attach the returned `upload_id` to the first message of
-  // each following call to `Create`. If there is an error or the connection is
-  // broken during the resumable `Create()`, the client should check the status
-  // of the `Create()` by calling `QueryWriteStatus()` and continue writing from
-  // the returned `persisted_size`. This may be less than the amount of data the
-  // client previously sent.
+  // each following call to `WriteObject`. If the stream is closed before
+  // finishing the upload (either explicitly by the client or due to a network
+  // error or an error response from the server), the client should do as
+  // follows:
+  //   - Check the result Status of the stream, to determine if writing can be
+  //     resumed on this stream or must be restarted from scratch (by calling
+  //     `StartResumableWrite()`). The resumable errors are DEADLINE_EXCEEDED,
+  //     INTERNAL, and UNAVAILABLE. For each case, the client should use binary
+  //     exponential backoff before retrying.  Additionally, writes can be
+  //     resumed after RESOURCE_EXHAUSTED errors, but only after taking
+  //     appropriate measures, which may include reducing aggregate send rate
+  //     across clients and/or requesting a quota increase for your project.
+  //   - If the call to `WriteObject` returns `ABORTED`, that indicates
+  //     concurrent attempts to update the resumable write, caused either by
+  //     multiple racing clients or by a single client where the previous
+  //     request was timed out on the client side but nonetheless reached the
+  //     server. In this case the client should take steps to prevent further
+  //     concurrent writes (e.g., increase the timeouts, stop using more than
+  //     one process to perform the upload, etc.), and then should follow the
+  //     steps below for resuming the upload.
+  //   - For resumable errors, the client should call `QueryWriteStatus()` and
+  //     then continue writing from the returned `persisted_size`. This may be
+  //     less than the amount of data the client previously sent. Note also that
+  //     it is acceptable to send data starting at an offset earlier than the
+  //     returned `persisted_size`; in this case, the service will skip data at
+  //     offsets that were already persisted (without checking that it matches
+  //     the previously written data), and write only the data starting from the
+  //     persisted offset. This behavior can make client-side handling simpler
+  //     in some cases.
   //
   // The service will not view the object as complete until the client has
   // sent a `WriteObjectRequest` with `finish_write` set to `true`. Sending any
@@ -189,6 +213,10 @@ service Storage {
   // `true` will cause an error. The client **should** check the response it
   // receives to determine how much data the service was able to commit and
   // whether the service views the object as complete.
+  //
+  // Attempting to resume an already finalized object will result in an OK
+  // status, with a WriteObjectResponse containing the finalized object's
+  // metadata.
   rpc WriteObject(stream WriteObjectRequest) returns (WriteObjectResponse) {
   }
 
@@ -272,9 +300,6 @@ message DeleteBucketRequest {
   // If set, only deletes the bucket if its metageneration does not match this
   // value.
   optional int64 if_metageneration_not_match = 3;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 5;
 }
 
 // Request message for GetBucket.
@@ -295,9 +320,6 @@ message GetBucketRequest {
   // value, the request will return an error.
   optional int64 if_metageneration_not_match = 3;
 
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 4;
-
   // Mask specifying which fields to read.
   // A "*" field may be used to indicate all fields.
   // If no mask is specified, will default to all fields.
@@ -315,8 +337,9 @@ message CreateBucketRequest {
   ];
 
   // Required. Properties of the new bucket being inserted.
-  // The project and name of the bucket are specified in this request, not in
-  // the bucket resource.
+  // The project and name of the bucket are specified in the parent and
+  // bucket_id fields, respectively. Populating those fields in `bucket` will
+  // result in an error.
   Bucket bucket = 2 [(google.api.field_behavior) = REQUIRED];
 
   // Required. The ID to use for this bucket, which will become the final component of
@@ -325,10 +348,14 @@ message CreateBucketRequest {
   string bucket_id = 3 [(google.api.field_behavior) = REQUIRED];
 
   // Apply a predefined set of access controls to this bucket.
-  PredefinedBucketAcl predefined_acl = 4;
+  // Valid values are "authenticatedRead", "private", "projectPrivate",
+  // "publicRead", or "publicReadWrite".
+  string predefined_acl = 6;
 
   // Apply a predefined set of default object access controls to this bucket.
-  PredefinedObjectAcl predefined_default_object_acl = 5;
+  // Valid values are "authenticatedRead", "bucketOwnerFullControl",
+  // "bucketOwnerRead", "private", "projectPrivate", or "publicRead".
+  string predefined_default_object_acl = 7;
 }
 
 // Request message for ListBuckets.
@@ -359,9 +386,6 @@ message ListBucketsRequest {
   // items.acl, and items.default_object_acl.
   // * may be used to mean "all fields".
   optional google.protobuf.FieldMask read_mask = 5;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 6;
 }
 
 // The result of a call to Buckets.ListBuckets
@@ -387,9 +411,6 @@ message LockBucketRetentionPolicyRequest {
   // Makes the operation conditional on whether bucket's current metageneration
   // matches the given value. Must be positive.
   int64 if_metageneration_match = 2;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 3;
 }
 
 // Request for UpdateBucket method.
@@ -407,10 +428,14 @@ message UpdateBucketRequest {
   optional int64 if_metageneration_not_match = 3;
 
   // Apply a predefined set of access controls to this bucket.
-  PredefinedBucketAcl predefined_acl = 4;
+  // Valid values are "authenticatedRead", "private", "projectPrivate",
+  // "publicRead", or "publicReadWrite".
+  string predefined_acl = 8;
 
   // Apply a predefined set of default object access controls to this bucket.
-  PredefinedObjectAcl predefined_default_object_acl = 5;
+  // Valid values are "authenticatedRead", "bucketOwnerFullControl",
+  // "bucketOwnerRead", "private", "projectPrivate", or "publicRead".
+  string predefined_default_object_acl = 9;
 
   // List of fields to be updated.
   //
@@ -423,9 +448,6 @@ message UpdateBucketRequest {
   // Not specifying a field while setting that field to a non-default value is
   // an error.
   google.protobuf.FieldMask update_mask = 6;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 7;
 }
 
 // Request message for DeleteNotification.
@@ -478,7 +500,8 @@ message ListNotificationsRequest {
 
   // The maximum number of notifications to return. The service may return fewer
   // than this value.
-  // The maximum value is 100; values above 100 will be coerced to 100.
+  // The default value is 100. Specifying a value above 100 will result in a
+  // page_size of 100.
   int32 page_size = 2;
 
   // A page token, received from a previous `ListNotifications` call.
@@ -529,7 +552,9 @@ message ComposeObjectRequest {
   repeated SourceObject source_objects = 2;
 
   // Apply a predefined set of access controls to the destination object.
-  PredefinedObjectAcl destination_predefined_acl = 3;
+  // Valid values are "authenticatedRead", "bucketOwnerFullControl",
+  // "bucketOwnerRead", "private", "projectPrivate", or "publicRead".
+  string destination_predefined_acl = 9;
 
   // Makes the operation conditional on whether the object's current generation
   // matches the given value. Setting to 0 makes the operation succeed only if
@@ -550,9 +575,6 @@ message ComposeObjectRequest {
 
   // A set of parameters common to Storage API requests concerning an object.
   CommonObjectRequestParams common_object_request_params = 7;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 8;
 }
 
 // Message for deleting an object.
@@ -578,7 +600,7 @@ message DeleteObjectRequest {
   // there are no live versions of the object.
   optional int64 if_generation_match = 5;
 
-  // Makes the operation conditional on whether the object's current generation
+  // Makes the operation conditional on whether the object's live generation
   // does not match the given value. If no live object exists, the precondition
   // fails. Setting to 0 makes the operation succeed only if there is a live
   // version of the object.
@@ -594,9 +616,6 @@ message DeleteObjectRequest {
 
   // A set of parameters common to Storage API requests concerning an object.
   CommonObjectRequestParams common_object_request_params = 10;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 11;
 }
 
 // Request message for ReadObject.
@@ -618,8 +637,8 @@ message ReadObjectRequest {
   // back from the end of the object to be returned. For example, if an object's
   // length is 15 bytes, a ReadObjectRequest with `read_offset` = -5 and
   // `read_limit` = 3 would return bytes 10 through 12 of the object. Requesting
-  // a negative offset whose magnitude is larger than the size of the object
-  // will result in an error.
+  // a negative offset with magnitude larger than the size of the object will
+  // return the entire object.
   int64 read_offset = 4;
 
   // The maximum number of `data` bytes the server is allowed to return in the
@@ -636,7 +655,7 @@ message ReadObjectRequest {
   // there are no live versions of the object.
   optional int64 if_generation_match = 6;
 
-  // Makes the operation conditional on whether the object's current generation
+  // Makes the operation conditional on whether the object's live generation
   // does not match the given value. If no live object exists, the precondition
   // fails. Setting to 0 makes the operation succeed only if there is a live
   // version of the object.
@@ -652,9 +671,6 @@ message ReadObjectRequest {
 
   // A set of parameters common to Storage API requests concerning an object.
   CommonObjectRequestParams common_object_request_params = 10;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 11;
 
   // Mask specifying which fields to read.
   // The checksummed_data field and its children will always be present.
@@ -681,7 +697,7 @@ message GetObjectRequest {
   // there are no live versions of the object.
   optional int64 if_generation_match = 4;
 
-  // Makes the operation conditional on whether the object's current generation
+  // Makes the operation conditional on whether the object's live generation
   // does not match the given value. If no live object exists, the precondition
   // fails. Setting to 0 makes the operation succeed only if there is a live
   // version of the object.
@@ -698,9 +714,6 @@ message GetObjectRequest {
   // A set of parameters common to Storage API requests concerning an object.
   CommonObjectRequestParams common_object_request_params = 8;
 
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 9;
-
   // Mask specifying which fields to read.
   // If no mask is specified, will default to all fields except metadata.acl and
   // metadata.owner.
@@ -708,7 +721,7 @@ message GetObjectRequest {
   optional google.protobuf.FieldMask read_mask = 10;
 }
 
-// Response message for GetObject.
+// Response message for ReadObject.
 message ReadObjectResponse {
   // A portion of the data for the object. The service **may** leave `data`
   // empty for any given `ReadResponse`. This enables the service to inform the
@@ -737,14 +750,16 @@ message WriteObjectSpec {
   Object resource = 1;
 
   // Apply a predefined set of access controls to this object.
-  PredefinedObjectAcl predefined_acl = 2;
+  // Valid values are "authenticatedRead", "bucketOwnerFullControl",
+  // "bucketOwnerRead", "private", "projectPrivate", or "publicRead".
+  string predefined_acl = 7;
 
   // Makes the operation conditional on whether the object's current
   // generation matches the given value. Setting to 0 makes the operation
   // succeed only if there are no live versions of the object.
   optional int64 if_generation_match = 3;
 
-  // Makes the operation conditional on whether the object's current
+  // Makes the operation conditional on whether the object's live
   // generation does not match the given value. If no live object exists, the
   // precondition fails. Setting to 0 makes the operation succeed only if
   // there is a live version of the object.
@@ -810,9 +825,6 @@ message WriteObjectRequest {
 
   // A set of parameters common to Storage API requests concerning an object.
   CommonObjectRequestParams common_object_request_params = 8;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 9;
 }
 
 // Response message for WriteObject.
@@ -888,9 +900,6 @@ message ListObjectsRequest {
   // have names between lexicographic_start (inclusive) and lexicographic_end
   // (exclusive).
   string lexicographic_end = 11;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 9;
 }
 
 // Request object for `QueryWriteStatus`.
@@ -901,9 +910,6 @@ message QueryWriteStatusRequest {
 
   // A set of parameters common to Storage API requests concerning an object.
   CommonObjectRequestParams common_object_request_params = 2;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 3;
 }
 
 // Response object for `QueryWriteStatus`.
@@ -984,14 +990,16 @@ message RewriteObjectRequest {
   string rewrite_token = 5;
 
   // Apply a predefined set of access controls to the destination object.
-  PredefinedObjectAcl destination_predefined_acl = 6;
+  // Valid values are "authenticatedRead", "bucketOwnerFullControl",
+  // "bucketOwnerRead", "private", "projectPrivate", or "publicRead".
+  string destination_predefined_acl = 28;
 
   // Makes the operation conditional on whether the object's current generation
   // matches the given value. Setting to 0 makes the operation succeed only if
   // there are no live versions of the object.
   optional int64 if_generation_match = 7;
 
-  // Makes the operation conditional on whether the object's current generation
+  // Makes the operation conditional on whether the object's live generation
   // does not match the given value. If no live object exists, the precondition
   // fails. Setting to 0 makes the operation succeed only if there is a live
   // version of the object.
@@ -1005,11 +1013,11 @@ message RewriteObjectRequest {
   // metageneration does not match the given value.
   optional int64 if_metageneration_not_match = 10;
 
-  // Makes the operation conditional on whether the source object's current
+  // Makes the operation conditional on whether the source object's live
   // generation matches the given value.
   optional int64 if_source_generation_match = 11;
 
-  // Makes the operation conditional on whether the source object's current
+  // Makes the operation conditional on whether the source object's live
   // generation does not match the given value.
   optional int64 if_source_generation_not_match = 12;
 
@@ -1047,9 +1055,6 @@ message RewriteObjectRequest {
 
   // A set of parameters common to Storage API requests concerning an object.
   CommonObjectRequestParams common_object_request_params = 19;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 20;
 }
 
 // A rewrite response.
@@ -1082,9 +1087,6 @@ message StartResumableWriteRequest {
 
   // A set of parameters common to Storage API requests concerning an object.
   CommonObjectRequestParams common_object_request_params = 3;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 4;
 }
 
 // Response object for `StartResumableWrite`.
@@ -1100,7 +1102,7 @@ message UpdateObjectRequest {
   // The object's bucket and name fields are used to identify the object to
   // update. If present, the object's generation field selects a specific
   // revision of this object whose metadata should be updated. Otherwise,
-  // assumes the current, live version of the object.
+  // assumes the live version of the object.
   Object object = 1;
 
   // Makes the operation conditional on whether the object's current generation
@@ -1108,7 +1110,7 @@ message UpdateObjectRequest {
   // there are no live versions of the object.
   optional int64 if_generation_match = 2;
 
-  // Makes the operation conditional on whether the object's current generation
+  // Makes the operation conditional on whether the object's live generation
   // does not match the given value. If no live object exists, the precondition
   // fails. Setting to 0 makes the operation succeed only if there is a live
   // version of the object.
@@ -1123,7 +1125,9 @@ message UpdateObjectRequest {
   optional int64 if_metageneration_not_match = 5;
 
   // Apply a predefined set of access controls to this object.
-  PredefinedObjectAcl predefined_acl = 6;
+  // Valid values are "authenticatedRead", "bucketOwnerFullControl",
+  // "bucketOwnerRead", "private", "projectPrivate", or "publicRead".
+  string predefined_acl = 10;
 
   // List of fields to be updated.
   //
@@ -1139,9 +1143,6 @@ message UpdateObjectRequest {
 
   // A set of parameters common to Storage API requests concerning an object.
   CommonObjectRequestParams common_object_request_params = 8;
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 9;
 }
 
 // Request message for GetServiceAccount.
@@ -1153,9 +1154,6 @@ message GetServiceAccountRequest {
       type: "cloudresourcemanager.googleapis.com/Project"
     }
   ];
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 2;
 }
 
 // Request message for CreateHmacKey.
@@ -1170,9 +1168,6 @@ message CreateHmacKeyRequest {
 
   // Required. The service account to create the HMAC for.
   string service_account_email = 2 [(google.api.field_behavior) = REQUIRED];
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 3;
 }
 
 // Create hmac response.  The only time the secret for an HMAC will be returned.
@@ -1197,9 +1192,6 @@ message DeleteHmacKeyRequest {
       type: "cloudresourcemanager.googleapis.com/Project"
     }
   ];
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 3;
 }
 
 // Request object to get metadata on a given HMAC key.
@@ -1214,9 +1206,6 @@ message GetHmacKeyRequest {
       type: "cloudresourcemanager.googleapis.com/Project"
     }
   ];
-
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 3;
 }
 
 // Request to fetch a list of HMAC keys under a given project.
@@ -1240,9 +1229,6 @@ message ListHmacKeysRequest {
 
   // Optional. If set, return deleted keys that have not yet been wiped out.
   bool show_deleted_keys = 5 [(google.api.field_behavior) = OPTIONAL];
-
-  // Optional. A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 6 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Hmac key list response with next page information.
@@ -1263,9 +1249,6 @@ message UpdateHmacKeyRequest {
   // identify the key.
   HmacKeyMetadata hmac_key = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // A set of parameters common to all Storage API requests.
-  CommonRequestParams common_request_params = 2;
-
   // Update mask for hmac_key.
   google.protobuf.FieldMask update_mask = 3;
 }
@@ -1283,17 +1266,6 @@ message CommonObjectRequestParams {
   // SHA256 hash of encryption key used with the Customer-Supplied Encryption
   // Keys feature.
   bytes encryption_key_sha256_bytes = 5;
-}
-
-// Parameters that can be passed to any request.
-message CommonRequestParams {
-  // Required. Required when using buckets with Requestor Pays feature enabled.
-  string user_project = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      type: "cloudresourcemanager.googleapis.com/Project"
-    }
-  ];
 }
 
 // Shared constants.
@@ -1438,32 +1410,17 @@ message Bucket {
       bool enabled = 1;
 
       // The deadline time for changing
-      // `iamConfig.uniformBucketLevelAccess.enabled` from
-      // true to false in [RFC 3339](https://tools.ietf.org/html/rfc3339).
+      // `iamConfig.uniformBucketLevelAccess.enabled` from `true` to `false`.
       // Mutable until the specified deadline is reached, but not afterward.
       google.protobuf.Timestamp lock_time = 2;
-    }
-
-    // Public Access Prevention config values.
-    enum PublicAccessPrevention {
-      // No specified PublicAccessPrevention.
-      PUBLIC_ACCESS_PREVENTION_UNSPECIFIED = 0;
-
-      // Prevents access from being granted to public members 'allUsers' and
-      // 'allAuthenticatedUsers'. Prevents attempts to grant new access to
-      // public members.
-      ENFORCED = 1;
-
-      // This setting is inherited from Org Policy. Does not prevent access from
-      // being granted to public members 'allUsers' or 'allAuthenticatedUsers'.
-      INHERITED = 2;
     }
 
     // Bucket restriction options currently enforced on the bucket.
     UniformBucketLevelAccess uniform_bucket_level_access = 1;
 
-    // Whether IAM will enforce public access prevention.
-    PublicAccessPrevention public_access_prevention = 2;
+    // Whether IAM will enforce public access prevention. Valid values are
+    // "enforced" or "inherited".
+    string public_access_prevention = 3;
   }
 
   // Lifecycle properties of a bucket.
@@ -1531,6 +1488,14 @@ message Bucket {
         // version satisfies this condition only if it became noncurrent before
         // the specified date in UTC.
         google.type.Date noncurrent_time_before = 10;
+
+        // List of object name prefixes. If any prefix exactly matches the
+        // beginning of the object name, the condition evaluates to true.
+        repeated string matches_prefix = 11;
+
+        // List of object name suffixes. If any suffix exactly matches the
+        // end of the object name, the condition evaluates to true.
+        repeated string matches_suffix = 12;
       }
 
       // The action to take.
@@ -1547,7 +1512,8 @@ message Bucket {
 
   // Logging-related properties of a bucket.
   message Logging {
-    // The destination bucket where the current bucket's logs should be placed.
+    // The destination bucket where the current bucket's logs should be placed,
+    // using path format (like `projects/123456/buckets/foo`).
     string log_bucket = 1;
 
     // A prefix for log object names.
@@ -1557,8 +1523,7 @@ message Bucket {
   // Retention policy properties of a bucket.
   message RetentionPolicy {
     // Server-determined value that indicates the time from which policy was
-    // enforced and effective. This value is in
-    // [https://tools.ietf.org/html/rfc3339][RFC 3339] format.
+    // enforced and effective.
     google.protobuf.Timestamp effective_time = 1;
 
     // Once locked, an object retention policy cannot be modified.
@@ -1598,10 +1563,23 @@ message Bucket {
   }
 
   // Configuration for Custom Dual Regions.  It should specify precisely two
-  // eligible regions within the same Multiregion.
+  // eligible regions within the same Multiregion. More information on regions
+  // may be found [https://cloud.google.com/storage/docs/locations][here].
   message CustomPlacementConfig {
     // List of locations to use for data placement.
     repeated string data_locations = 1;
+  }
+
+  // Configuration for a bucket's Autoclass feature.
+  message Autoclass {
+    // Enables Autoclass.
+    bool enabled = 1;
+
+    // Output only. Latest instant at which the `enabled` field was set to true after being
+    // disabled/unconfigured or set to false after being enabled. If Autoclass
+    // is enabled when the bucket is created, the toggle_time is set to the
+    // bucket creation time.
+    google.protobuf.Timestamp toggle_time = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
   }
 
   // Immutable. The name of the bucket.
@@ -1611,6 +1589,11 @@ message Bucket {
   // `name` field. For globally unique buckets, this is equal to the "bucket
   // name" of other Cloud Storage APIs. Example: "pub".
   string bucket_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The etag of the bucket.
+  // If included in the metadata of an UpdateBucketRequest, the operation will
+  // only be performed if the etag matches that of the bucket.
+  string etag = 29;
 
   // Immutable. The project which owns this bucket.
   string project = 3 [
@@ -1666,8 +1649,7 @@ message Bucket {
   // for more information.
   Lifecycle lifecycle = 10;
 
-  // Output only. The creation time of the bucket in
-  // [https://tools.ietf.org/html/rfc3339][RFC 3339] format.
+  // Output only. The creation time of the bucket.
   // Attempting to set or update this field will result in a
   // [FieldViolation][google.rpc.BadRequest.FieldViolation].
   google.protobuf.Timestamp create_time = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
@@ -1741,6 +1723,10 @@ message Bucket {
   // Configuration that, if present, specifies the data placement for a Custom
   // Dual Region.
   CustomPlacementConfig custom_placement_config = 26;
+
+  // The bucket's Autoclass configuration. If there is no configuration, the
+  // Autoclass feature will be disabled and have no effect on the bucket.
+  Autoclass autoclass = 28;
 }
 
 // An access-control entry.
@@ -1770,6 +1756,12 @@ message BucketAccessControl {
 
   // The ID for the entity, if any.
   string entity_id = 4;
+
+  // The etag of the BucketAccessControl.
+  // If included in the metadata of an update or delete request message, the
+  // operation operation will only be performed if the etag matches that of the
+  // bucket's BucketAccessControl.
+  string etag = 8;
 
   // The email address associated with the entity, if any.
   string email = 5;
@@ -1828,11 +1820,14 @@ message HmacKeyMetadata {
   // State of the key. One of ACTIVE, INACTIVE, or DELETED.
   string state = 5;
 
-  // The creation time of the HMAC key in RFC 3339 format.
+  // The creation time of the HMAC key.
   google.protobuf.Timestamp create_time = 6;
 
-  // The last modification time of the HMAC key metadata in RFC 3339 format.
+  // The last modification time of the HMAC key metadata.
   google.protobuf.Timestamp update_time = 7;
+
+  // The etag of the HMAC key.
+  string etag = 8;
 }
 
 // A directive to publish Pub/Sub notifications upon changes to a bucket.
@@ -1851,6 +1846,11 @@ message Notification {
   // Required. The Pub/Sub topic to which this subscription publishes. Formatted as:
   // '//pubsub.googleapis.com/projects/{project-identifier}/topics/{my-topic}'
   string topic = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // The etag of the Notification.
+  // If included in the metadata of GetNotificationRequest, the operation will
+  // only be performed if the etag matches that of the Notification.
+  string etag = 7;
 
   // Optional. If present, only send notifications about listed event types. If empty,
   // sent notifications for all event types.
@@ -1897,6 +1897,12 @@ message Object {
       type: "storage.googleapis.com/Bucket"
     }
   ];
+
+  // The etag of the object.
+  // If included in the metadata of an update or delete request message, the
+  // operation will only be performed if the etag matches that of the live
+  // object.
+  string etag = 27;
 
   // Immutable. The content generation of this object. Used for object versioning.
   // Attempting to set or update this field will result in a
@@ -1994,8 +2000,7 @@ message Object {
   bool temporary_hold = 20;
 
   // A server-determined value that specifies the earliest time that the
-  // object's retention period expires. This value is in
-  // [https://tools.ietf.org/html/rfc3339][RFC 3339] format.
+  // object's retention period expires.
   // Note 1: This field is not provided for objects with an active event-based
   // hold, since retention expiration is unknown until the hold is removed.
   // Note 2: This value can be provided even when temporary hold is set (so that
@@ -2060,6 +2065,12 @@ message ObjectAccessControl {
   // The ID for the entity, if any.
   string entity_id = 4;
 
+  // The etag of the ObjectAccessControl.
+  // If included in the metadata of an update or delete request message, the
+  // operation will only be performed if the etag matches that of the live
+  // object's ObjectAccessControl.
+  string etag = 8;
+
   // The email address associated with the entity, if any.
   string email = 5;
 
@@ -2120,58 +2131,4 @@ message ContentRange {
 
   // The complete length of the object data.
   int64 complete_length = 3;
-}
-
-// Predefined or "canned" aliases for sets of specific object ACL entries.
-enum PredefinedObjectAcl {
-  // No predefined ACL.
-  PREDEFINED_OBJECT_ACL_UNSPECIFIED = 0;
-
-  // Object owner gets `OWNER` access, and
-  // `allAuthenticatedUsers` get `READER` access.
-  OBJECT_ACL_AUTHENTICATED_READ = 1;
-
-  // Object owner gets `OWNER` access, and project team owners get
-  // `OWNER` access.
-  OBJECT_ACL_BUCKET_OWNER_FULL_CONTROL = 2;
-
-  // Object owner gets `OWNER` access, and project team owners get
-  // `READER` access.
-  OBJECT_ACL_BUCKET_OWNER_READ = 3;
-
-  // Object owner gets `OWNER` access.
-  OBJECT_ACL_PRIVATE = 4;
-
-  // Object owner gets `OWNER` access, and project team members get
-  // access according to their roles.
-  OBJECT_ACL_PROJECT_PRIVATE = 5;
-
-  // Object owner gets `OWNER` access, and `allUsers`
-  // get `READER` access.
-  OBJECT_ACL_PUBLIC_READ = 6;
-}
-
-// A set of predefined, or "canned," ACLs that can be set on a
-// bucket instead of manually specifying a complete ACL.
-enum PredefinedBucketAcl {
-  // No predefined ACL.
-  PREDEFINED_BUCKET_ACL_UNSPECIFIED = 0;
-
-  // Project team owners get `OWNER` access, and
-  // `allAuthenticatedUsers` get `READER` access.
-  BUCKET_ACL_AUTHENTICATED_READ = 1;
-
-  // Project team owners get `OWNER` access.
-  BUCKET_ACL_PRIVATE = 2;
-
-  // Project team members get access according to their roles.
-  BUCKET_ACL_PROJECT_PRIVATE = 3;
-
-  // Project team owners get `OWNER` access, and
-  // `allUsers` get `READER` access.
-  BUCKET_ACL_PUBLIC_READ = 4;
-
-  // Project team owners get `OWNER` access, and
-  // `allUsers` get `WRITER` access.
-  BUCKET_ACL_PUBLIC_READ_WRITE = 5;
 }

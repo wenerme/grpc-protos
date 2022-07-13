@@ -178,7 +178,7 @@ message ListClustersRequest {
     int64 page_size = 2 [(value) = "<=1000"];
 
     // Page token.
-    // To get the next page of results, set `page_token` to the [ListClustersResponse.next_page_token] returned by a previous list request.
+    // To get the next page of results, set `page_token` to the [ListClustersResponse.next_page_token] returned by the previous list request.
     string page_token = 3 [(length) = "<=100"];
 
     // A filter expression that filters resources listed in the response.
@@ -237,7 +237,7 @@ message CreateClusterRequest {
     // User security groups
     repeated string security_group_ids = 11;
 
-    // ID of the service account used for access to Yandex Object Storage.
+    // ID of the service account used for access to Object Storage.
     string service_account_id = 12;
 
     // Deletion Protection inhibits deletion of the cluster
@@ -284,7 +284,7 @@ message UpdateClusterRequest {
   // User security groups
   repeated string security_group_ids = 7;
 
-  // ID of the service account used for access to Yandex Object Storage.
+  // ID of the service account used for access to Object Storage.
   string service_account_id = 8;
 
   // Deletion Protection inhibits deletion of the cluster
@@ -335,7 +335,7 @@ message ListClusterLogsRequest {
 
   // Page token.
   //
-  // To get the next page of results, set `page_token` to the [ListClusterLogsResponse.next_page_token] returned by a previous list request.
+  // To get the next page of results, set `page_token` to the [ListClusterLogsResponse.next_page_token] returned by the previous list request.
   string page_token = 6 [(length) = "<=100"];
 
   // The flag that defines behavior of providing the next page token.
@@ -456,7 +456,7 @@ message ListClusterOperationsRequest {
 
   // Page token.
   //
-  // To get the next page of results, set `page_token` to the [ListClusterOperationsResponse.next_page_token] returned by a previous list request.
+  // To get the next page of results, set `page_token` to the [ListClusterOperationsResponse.next_page_token] returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -484,7 +484,7 @@ message ListClusterHostsRequest {
 
   // Page token.
   //
-  // To get the next page of results, set `page_token` to the [ListClusterHostsResponse.next_page_token] returned by a previous list request.
+  // To get the next page of results, set `page_token` to the [ListClusterHostsResponse.next_page_token] returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -706,7 +706,7 @@ message RestoreClusterRequest {
     // User security groups
     repeated string security_group_ids = 11;
 
-    // ID of the service account used for access to Yandex Object Storage.
+    // ID of the service account used for access to Object Storage.
     string service_account_id = 12;
 
     // Deletion Protection inhibits deletion of the cluster

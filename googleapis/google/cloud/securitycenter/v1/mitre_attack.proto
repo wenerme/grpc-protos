@@ -165,6 +165,15 @@ message MitreAttack {
 
     // T1556
     MODIFY_AUTHENTICATION_PROCESS = 28;
+
+    // T1485
+    DATA_DESTRUCTION = 29;
+
+    // T1484
+    DOMAIN_POLICY_MODIFICATION = 30;
+
+    // T1562
+    IMPAIR_DEFENSES = 31;
   }
 
   // The MITRE ATT&CK tactic most closely represented by this finding, if any.

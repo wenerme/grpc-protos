@@ -288,7 +288,7 @@ message ListClustersRequest {
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token. To get the next page of results, set [page_token] to the [ListClustersResponse.next_page_token]
-  // returned by a previous list request.
+  // returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 
   // A filter expression that filters resources listed in the response.
@@ -345,7 +345,7 @@ message CreateClusterRequest {
   // Name of the first shard in cluster. If not set, defaults to the value 'shard1'.
   string shard_name = 11 [(length) = "<=63", (pattern) = "[a-zA-Z0-9_-]*"];
 
-  // ID of the service account used for access to Yandex Object Storage.
+  // ID of the service account used for access to Object Storage.
   string service_account_id = 12;
 
   // User security groups
@@ -384,7 +384,7 @@ message UpdateClusterRequest {
   // New name for the cluster.
   string name = 6 [(length) = "<=63", (pattern) = "[a-zA-Z0-9_-]*"];
 
-  // ID of the service account used for access to Yandex Object Storage.
+  // ID of the service account used for access to Object Storage.
   string service_account_id = 7;
 
   // New maintenance window settings for the cluster.
@@ -516,7 +516,7 @@ message RestoreClusterRequest {
   // ID of the folder to create the ClickHouse cluster in.
   string folder_id = 9 [(length) = "<=50"];
 
-  // ID of the service account used for access to Yandex Object Storage.
+  // ID of the service account used for access to Object Storage.
   string service_account_id = 10;
 
   // User security groups
@@ -602,7 +602,7 @@ message ListClusterLogsRequest {
   int64 page_size = 6 [(value) = "<=1000"];
 
   // Page token.  To get the next page of results, set [page_token] to the [ListClusterLogsResponse.next_page_token]
-  // returned by a previous list request.
+  // returned by the previous list request.
   string page_token = 7 [(length) = "<=100"];
 }
 
@@ -678,7 +678,7 @@ message ListClusterOperationsRequest {
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token.  To get the next page of results, set [page_token] to the [ListClusterOperationsResponse.next_page_token]
-  // returned by a previous list request.
+  // returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -704,7 +704,7 @@ message ListClusterBackupsRequest {
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token. To get the next page of results, set [page_token] to the
-  // [ListClusterBackupsResponse.next_page_token] returned by a previous list request.
+  // [ListClusterBackupsResponse.next_page_token] returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -730,7 +730,7 @@ message ListClusterHostsRequest {
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token.  To get the next page of results, set [page_token] to the [ListClusterHostsResponse.next_page_token]
-  // returned by a previous list request.
+  // returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -833,7 +833,7 @@ message ListClusterShardsRequest {
   int64 page_size = 2 [(value) = "0-1000"];
 
   // Page token.  to get the next page of results, set [page_token] to the [ListClusterShardsResponse.next_page_token]
-  // returned by a previous list request.
+  // returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -941,7 +941,7 @@ message ListClusterShardGroupsRequest {
 
   // Page token.
   //
-  // To get the next page of results, set [page_token] to the [ListClusterShardGroupsResponse.next_page_token] returned by a previous list request.
+  // To get the next page of results, set [page_token] to the [ListClusterShardGroupsResponse.next_page_token] returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -1141,7 +1141,7 @@ message ShardConfigSpec {
     Resources resources = 2;
 
     // Relative weight of the shard considered when writing data to the cluster.
-    // For details, see [ClickHouse documentation](https://clickhouse.yandex/docs/en/operations/table_engines/distributed/).
+    // For details, see [ClickHouse documentation](https://clickhouse.com/docs/en/operations/table_engines/distributed/).
     google.protobuf.Int64Value weight = 3;
   }
 

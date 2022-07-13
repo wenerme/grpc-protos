@@ -13,6 +13,72 @@ package perfetto.protos;
 
 option go_package = "github.com/google/perfetto/perfetto_proto";
 
+// Begin of protos/perfetto/metrics/android/process_metadata.proto
+
+message AndroidProcessMetadata {
+  // Process name. Usually, cmdline or <package_name>(:<custom_name>)?.
+  optional string name = 1;
+
+  // User id under which this process runs.
+  optional int64 uid = 2;
+
+  // Package metadata from Android package list.
+  message Package {
+    optional string package_name = 1;
+    optional int64 apk_version_code = 2;
+    optional bool debuggable = 3;
+  }
+
+  // Package that this process belongs to.
+  //
+  // If this process shares its uid (see `packages_for_uid` field), the package
+  // is determined based on the process name and package name. If there is no
+  // match this field is empty.
+  optional Package package = 7;
+
+  // All packages using this uid.
+  //
+  // Shared uid documentation:
+  // https://developer.android.com/guide/topics/manifest/manifest-element#uid
+  repeated Package packages_for_uid = 8;
+
+  reserved 3, 4, 5, 6;
+}
+
+// End of protos/perfetto/metrics/android/process_metadata.proto
+
+// Begin of protos/perfetto/metrics/android/android_frame_timeline_metric.proto
+
+message AndroidFrameTimelineMetric {
+  message ProcessBreakdown {
+    optional AndroidProcessMetadata process = 3;
+
+    optional int64 total_frames = 4;
+    optional int64 missed_frames = 5;
+    optional int64 missed_app_frames = 6;
+    optional int64 missed_sf_frames = 7;
+
+    optional int64 frame_dur_max = 8;
+    optional int64 frame_dur_avg = 9;
+    optional int64 frame_dur_p50 = 10;
+    optional int64 frame_dur_p90 = 11;
+    optional int64 frame_dur_p95 = 12;
+    optional int64 frame_dur_p99 = 13;
+
+    reserved 1, 2;
+  }
+
+  optional int64 total_frames = 4;
+  optional int64 missed_app_frames = 5;
+
+  repeated ProcessBreakdown process = 2;
+
+  reserved 1;
+}
+
+
+// End of protos/perfetto/metrics/android/android_frame_timeline_metric.proto
+
 // Begin of protos/perfetto/metrics/android/android_trusty_workqueues.proto
 
 // Metric used to generate a simplified view of the Trusty kworker events.
@@ -64,6 +130,22 @@ message AndroidBatteryMetric {
 }
 
 // End of protos/perfetto/metrics/android/batt_metric.proto
+
+// Begin of protos/perfetto/metrics/android/binder_metric.proto
+
+// This metric provides per-process Binder statistics for traces with binder_driver enabled
+// Specifically, transactions are categorized and counted
+message AndroidBinderMetric {
+  message PerProcessBreakdown {
+    optional string process_name = 1;
+    optional uint32 pid = 2;
+    optional string slice_name = 3;
+    optional uint32 count = 4;
+  }
+
+  repeated PerProcessBreakdown process_breakdown = 1;
+}
+// End of protos/perfetto/metrics/android/binder_metric.proto
 
 // Begin of protos/perfetto/metrics/android/camera_metric.proto
 
@@ -591,55 +673,6 @@ message AndroidIrqRuntimeMetric {
 
 // End of protos/perfetto/metrics/android/irq_runtime_metric.proto
 
-// Begin of protos/perfetto/metrics/android/jank_metric.proto
-
-message AndroidJankMetrics {
-  repeated Warning warnings = 1;
-
-  message Warning {
-    optional int64 ts = 1;
-    optional int64 dur = 2;
-
-    optional string process_name = 3;
-    optional string warning_text = 4;
-  }
-}
-// End of protos/perfetto/metrics/android/jank_metric.proto
-
-// Begin of protos/perfetto/metrics/android/process_metadata.proto
-
-message AndroidProcessMetadata {
-  // Process name. Usually, cmdline or <package_name>(:<custom_name>)?.
-  optional string name = 1;
-
-  // User id under which this process runs.
-  optional int64 uid = 2;
-
-  // Package metadata from Android package list.
-  message Package {
-    optional string package_name = 1;
-    optional int64 apk_version_code = 2;
-    optional bool debuggable = 3;
-  }
-
-  // Package that this process belongs to.
-  //
-  // If this process shares its uid (see `packages_for_uid` field), the package
-  // is determined based on the process name and package name. If there is no
-  // match this field is empty.
-  optional Package package = 7;
-
-  // All packages using this uid.
-  //
-  // Shared uid documentation:
-  // https://developer.android.com/guide/topics/manifest/manifest-element#uid
-  repeated Package packages_for_uid = 8;
-
-  reserved 3, 4, 5, 6;
-}
-
-// End of protos/perfetto/metrics/android/process_metadata.proto
-
 // Begin of protos/perfetto/metrics/android/java_heap_histogram.proto
 
 message JavaHeapHistogram {
@@ -805,6 +838,10 @@ message AndroidMemoryMetric {
     optional double min = 1;
     optional double max = 2;
     optional double avg = 3;
+
+    // Memory growth observed in the counter sequence. In case of multiple
+    // processes with the same name, break ties using max.
+    optional double delta = 4;
   }
 
   // Process metrics, grouped by process name
@@ -949,9 +986,43 @@ message AndroidNetworkMetric {
     optional int64 avg_freq_khz = 5;
   }
 
+  message NetTxActionStatistic {
+    // SoftIrq NET_TX action count.
+    optional int64 count = 1;
+
+    // SoftIrq NET_TX action was running in millisecond.
+    optional double runtime_ms = 2;
+
+    // SoftIrq NET_TX action average running time.
+    optional double avg_runtime_ms = 3;
+
+    // CPU megacycles (i.e. cycles divided by 1e6).
+    optional int64 mcycles = 4;
+
+    // Average weighted CPU frequency by the time the NET_TX Action
+    // running at each frequency.
+    optional int64 avg_freq_khz = 5;
+  }
+
+  message IpiActionStatistic {
+    // SoftIrq IPI action count.
+    optional int64 count = 1;
+
+    // SoftIrq IPI action was running in millisecond.
+    optional double runtime_ms = 2;
+
+    // SoftIrq IPI action average running time.
+    optional double avg_runtime_ms = 3;
+  }
+
   message CoreNetRxActionStatistic {
     optional uint32 id = 1;
     optional NetRxActionStatistic net_rx_action_statistic = 2;
+  }
+
+  message CoreNetTxActionStatistic {
+    optional uint32 id = 1;
+    optional NetTxActionStatistic net_tx_action_statistic = 2;
   }
 
   message NetRxAction {
@@ -963,6 +1034,19 @@ message AndroidNetworkMetric {
 
     // The average packet time moves through the kernel stack.
     optional double avg_interstack_latency_ms = 3;
+  }
+
+  message NetTxAction {
+    // Total NET_TX action statistics.
+    optional NetTxActionStatistic total = 1;
+
+    // Per core NET_TX action statistics.
+    repeated CoreNetTxActionStatistic core = 2;
+  }
+
+  message IpiAction {
+    // Total IPI action statistics.
+    optional IpiActionStatistic total = 1;
   }
 
   // Network device metrics.
@@ -977,9 +1061,25 @@ message AndroidNetworkMetric {
   // Kfree Skb rate (i.e. kfree_skb count divided by the packet count from all
   // net devices).
   optional double kfree_skb_rate = 4;
+
+  // SoftIrq NET_TX action metrics.
+  optional NetTxAction net_tx_action = 5;
+
+  // SoftIrq IPI action metrics.
+  optional IpiAction ipi_action = 6;
 }
 
 // End of protos/perfetto/metrics/android/network_metric.proto
+
+// Begin of protos/perfetto/metrics/android/other_traces.proto
+
+message AndroidOtherTracesMetric {
+  // Uuids of other traces being finalized while the current trace was being
+  // recorded.
+  repeated string finalized_traces_uuid = 1;
+}
+
+// End of protos/perfetto/metrics/android/other_traces.proto
 
 // Begin of protos/perfetto/metrics/android/package_list.proto
 
@@ -1018,6 +1118,10 @@ message AndroidPowerRails {
 
   // Energy data per Power Rail.
   repeated PowerRails power_rails = 1;
+
+  // The average used power between the first and last sampled rail across all
+  // the rails in milliwatts (mw).
+  optional double avg_total_used_power_mw = 2;
 }
 // End of protos/perfetto/metrics/android/powrails_metric.proto
 
@@ -1071,6 +1175,41 @@ message AndroidRtRuntimeMetric {
 // simpleperf tool
 message AndroidSimpleperfMetric {
   optional double urgent_ratio = 1;
+
+  message PerfEventMetric {
+    // Simpleperf event name
+    optional string name = 1;
+
+    message Thread {
+      // Thread ID
+      optional int32 tid = 1;
+      // Thread name
+      optional string name = 2;
+      // CPU ID
+      optional int32 cpu = 3;
+      // Total counter value
+      optional double total = 4;
+    }
+
+    message Process {
+      // Process ID
+      optional int32 pid = 1;
+      // Process name
+      optional string name = 2;
+      // Metrics for each thread in this process.
+      repeated Thread threads = 3;
+      // Total counter value over all threads in this process
+      optional double total = 4;
+    }
+
+    // Metrics for each process
+    repeated Process processes = 2;
+
+    // Total counter value over all processes and threads
+    optional double total = 3;
+  }
+
+  repeated PerfEventMetric events = 2;
 }
 
 // End of protos/perfetto/metrics/android/simpleperf.proto
@@ -1102,7 +1241,7 @@ message AndroidStartupMetric {
 
   // Timing information spanning the intent received by the
   // activity manager to the first frame drawn.
-  // Next id: 31.
+  // Next id: 33.
   message ToFirstFrame {
     // The duration between the intent received and first frame.
     optional int64 dur_ns = 1;
@@ -1161,7 +1300,18 @@ message AndroidStartupMetric {
     // Time spent on garbage collection.
     optional Slice time_gc_total = 29;
     optional Slice time_gc_on_cpu = 30;
-    // Deprecated was other_process_to_activity_cpu_ratio
+
+    // Time spent in lock contention on the main thread of the process being
+    // started up. This includes *all* types of lock contention not just monitor
+    // contention.
+    optional Slice time_lock_contention_thread_main = 31;
+
+    // Time spent in monitor lock contention on the main thread of the
+    // process being started up. This will be a subset of the time counted by
+    // |time_lock_contention_thread_main|.
+    optional Slice time_monitor_contention_thread_main = 32;
+
+    // Removed: was other_process_to_activity_cpu_ratio.
     reserved 12;
 
     // Removed: was uint32 versions of to_post_fork, to_activity_thread_main and
@@ -1220,7 +1370,33 @@ message AndroidStartupMetric {
     optional int64 first_frame = 2;
   }
 
-  // Next id: 15
+  // Contains information about the state of a system during the app startup.
+  // Useful to put the startup in context.
+  message SystemState {
+    // Whether the dex2oat64 process was running concurrent to the startup.
+    optional bool dex2oat_running = 1;
+
+    // Whether the installd process was running concurrent to the startup.
+    optional bool installd_running = 2;
+
+    // The number of broadcasts dispatched by the system during the app
+    // launch.
+    optional int64 broadcast_dispatched_count = 3;
+
+    // The number of broadcasts received by an app or the system during the
+    // app launch. Note that multiple packages can be subscribed to the same
+    // broadcast so a single dsipatch can cause multiple packages to receive
+    // and process a broadcast.
+    optional int64 broadcast_received_count = 4;
+
+    // The most active (i.e. consuming the most mcycles) processes during the
+    // app launch excluding the process(es) being launched.
+    // Note: the exact number of returned is an implementation detail and
+    // will likely change over time.
+    repeated string most_active_non_launch_processes = 5;
+  }
+
+  // Next id: 16
   message Startup {
     // Random id uniquely identifying an app startup in this trace.
     optional uint32 startup_id = 1;
@@ -1262,13 +1438,18 @@ message AndroidStartupMetric {
     // using high-speed cameras (HSC).
     optional HscMetrics hsc = 8;
 
-    // The time taken in the startup from intent recieved to the start time
+    // The time taken in the startup from intent received to the start time
     // of the reportFullyDrawn slice. This should be longer than the time to
     // first frame as the application decides this after it starts rendering.
     optional Slice report_fully_drawn = 9;
 
-    // Conntains information about the status of odex files.
+    // Contains information about the status of odex files.
     repeated OptimizationStatus optimization_status = 12;
+
+    // Contains information about the state of the rest of the system during the
+    // startup. This is useful for getting context about why a startup might
+    // be slow beyond just what the app is doing.
+    optional SystemState system_state = 15;
 
     reserved 10;
   }
@@ -1374,37 +1555,6 @@ message AndroidTaskNames {
 
 // End of protos/perfetto/metrics/android/task_names.proto
 
-// Begin of protos/perfetto/metrics/android/thread_time_in_state_metric.proto
-
-message AndroidThreadTimeInStateMetric {
-  message MetricsByCoreType {
-    optional int32 time_in_state_cpu = 5;
-    optional string core_type = 1;
-
-    optional int64 runtime_ms = 2;
-    // CPU megacycles (i.e. cycles divided by 1e6).
-    optional int64 mcycles = 3;
-    // Power cost as predicted by the power profile.
-    optional double power_profile_mah = 4;
-  }
-
-  message Thread {
-    optional string name = 1;
-    optional bool main_thread = 3;
-    repeated MetricsByCoreType metrics_by_core_type = 2;
-  }
-
-  message Process {
-    optional AndroidProcessMetadata metadata = 1;
-    repeated MetricsByCoreType metrics_by_core_type = 2;
-    repeated Thread threads = 3;
-  }
-
-  repeated Process processes = 1;
-}
-
-// End of protos/perfetto/metrics/android/thread_time_in_state_metric.proto
-
 // Begin of protos/perfetto/metrics/android/trace_quality.proto
 
 // Metric which checks the data in the trace processor tables is "reasonble"
@@ -1428,6 +1578,13 @@ message UnsymbolizedFrames {
     optional string module = 1;
     optional string build_id = 2;
     optional int64 address = 3;
+
+    // In some cases (Chrome/Webview) the ID that should be used to query
+    // symbols in Google's internal tera-scale symbolization service is !=
+    // `build_id` and requires some mangling.
+    // This field is == 'build_id` for non-chromium cases, and is the breakpad
+    // module ID (with lowercase hex digics) for chromium cases.
+    optional string google_lookup_id = 4;
   }
 
   repeated Frame frames = 1;
@@ -1481,7 +1638,7 @@ message TraceAnalysisStats {
 
 // Root message for all Perfetto-based metrics.
 //
-// Next id: 45
+// Next id: 48
 message TraceMetrics {
   reserved 4, 10, 13, 14, 16, 19;
 
@@ -1542,7 +1699,8 @@ message TraceMetrics {
 
   optional AndroidTaskNames android_task_names = 23;
 
-  optional AndroidThreadTimeInStateMetric android_thread_time_in_state = 24;
+  // Deprecated was AndroidThreadTimeInStateMetric
+  reserved 24;
 
   // Metric associated with surfaceflinger.
   optional AndroidSurfaceflingerMetric android_surfaceflinger = 25;
@@ -1556,8 +1714,8 @@ message TraceMetrics {
   // Metric associated with hwcomposer.
   optional AndroidHwcomposerMetrics android_hwcomposer = 28;
 
-  // Detects common bad patterns that might lead to jank.
-  optional AndroidJankMetrics android_jank = 29;
+  // Deprecated was AndroidJankMetrics;
+  reserved 29;
 
   // G2D metrics.
   optional G2dMetrics g2d = 30;
@@ -1599,6 +1757,15 @@ message TraceMetrics {
 
   // Metrics for the Trusty team.
   optional AndroidTrustyWorkqueues android_trusty_workqueues = 44;
+
+  // Summary of other concurrent trace recording.
+  optional AndroidOtherTracesMetric android_other_traces = 45;
+
+  // Per-process Binder transaction metrics.
+  optional AndroidBinderMetric android_binder = 46;
+
+  // Metrics for app deadline missed.
+  optional AndroidFrameTimelineMetric android_frame_timeline_metric = 47;
 
   // Demo extensions.
   extensions 450 to 499;

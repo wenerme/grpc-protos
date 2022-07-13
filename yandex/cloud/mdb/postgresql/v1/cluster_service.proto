@@ -213,7 +213,7 @@ message ListClustersRequest {
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token. To get the next page of results, set [page_token] to the [ListClustersResponse.next_page_token]
-  // returned by a previous list request.
+  // returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 
   // A filter expression that filters resources listed in the response.
@@ -272,6 +272,9 @@ message CreateClusterRequest {
 
   // Deletion Protection inhibits deletion of the cluster
   bool deletion_protection = 12;
+
+  // Host groups hosting VMs of the cluster.
+  repeated string host_group_ids = 13;
 }
 
 message CreateClusterMetadata {
@@ -312,6 +315,9 @@ message UpdateClusterRequest {
 
   // Deletion Protection inhibits deletion of the cluster
   bool deletion_protection = 9;
+
+  // Host groups hosting VMs of the cluster.
+  //repeated string host_group_ids = 10;
 }
 
 message UpdateClusterMetadata {
@@ -421,6 +427,12 @@ message RestoreClusterRequest {
 
   // User security groups
   repeated string security_group_ids = 12;
+
+  // Deletion Protection inhibits deletion of the cluster
+  bool deletion_protection = 13;
+
+  // Host groups hosting VMs of the cluster.
+  repeated string host_group_ids = 14;
 }
 
 message RestoreClusterMetadata {
@@ -518,7 +530,7 @@ message ListClusterLogsRequest {
   int64 page_size = 6 [(value) = "<=1000"];
 
   // Page token. To get the next page of results, set [page_token] to the
-  // [ListClusterLogsResponse.next_page_token] returned by a previous list request.
+  // [ListClusterLogsResponse.next_page_token] returned by the previous list request.
   string page_token = 7 [(length) = "<=100"];
 
   // Always return `next_page_token`, even if current page is empty.
@@ -601,7 +613,7 @@ message ListClusterOperationsRequest {
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token.  To get the next page of results, set [page_token] to the [ListClusterOperationsResponse.next_page_token]
-  // returned by a previous list request.
+  // returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -627,7 +639,7 @@ message ListClusterBackupsRequest {
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token.  To get the next page of results, set [page_token] to the [ListClusterBackupsResponse.next_page_token]
-  // returned by a previous list request.
+  // returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 
@@ -653,7 +665,7 @@ message ListClusterHostsRequest {
   int64 page_size = 2 [(value) = "<=1000"];
 
   // Page token.  To get the next page of results, set [page_token] to the [ListClusterHostsResponse.next_page_token]
-  // returned by a previous list request.
+  // returned by the previous list request.
   string page_token = 3 [(length) = "<=100"];
 }
 

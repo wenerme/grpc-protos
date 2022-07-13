@@ -183,7 +183,7 @@ service InstanceService {
   //
   // The instance must be stopped before moving. To stop the instance, make a [Stop] request.
   //
-  // After moving, the instance will start recording its Yandex Monitoring default metrics to its new folder. Metrics
+  // After moving, the instance will start recording its Monitoring default metrics to its new folder. Metrics
   // that have been recorded to the source folder prior to moving will be retained.
   rpc Move (MoveInstanceRequest) returns (operation.Operation) {
     option (google.api.http) = { post: "/compute/v1/instances/{instance_id}:move" body: "*" };
@@ -290,6 +290,9 @@ message CreateInstanceRequest {
   // For more information, see [Metadata](/docs/compute/concepts/vm-metadata).
   map<string, string> metadata = 8;
 
+  // Options allow user to configure access to instance's metadata
+  MetadataOptions metadata_options = 19;
+
   // Boot disk to attach to the instance.
   AttachedDiskSpec boot_disk_spec = 9 [(required) = true];
 
@@ -380,6 +383,9 @@ message UpdateInstanceRequest {
   // For example, you may use the metadata in order to provide your public SSH key to the instance.
   // For more information, see [Metadata](/docs/compute/concepts/vm-metadata).
   map<string, string> metadata = 8;
+
+  // Options allow user to configure access to instance's metadata
+  MetadataOptions metadata_options = 13;
 
   // ID of the service account to use for [authentication inside the instance](/docs/compute/operations/vm-connect/auth-inside-vm).
   // To get the service account ID, use a [yandex.cloud.iam.v1.ServiceAccountService.List] request.
@@ -834,4 +840,19 @@ message MoveInstanceMetadata {
 
   // ID of the folder that the instance is being moved to.
   string destination_folder_id = 3;
+}
+
+message GuestStopInstanceMetadata {
+  // ID of the instance that was stopped from guest OS.
+  string instance_id = 1;
+}
+
+message PreemptInstanceMetadata {
+  // ID of the instance that is being preempted.
+  string instance_id = 1;
+}
+
+message CrashInstanceMetadata {
+  // ID of the instance that was crashed.
+  string instance_id = 1;
 }

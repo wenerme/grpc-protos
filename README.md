@@ -12,6 +12,7 @@ A collection of grpc proto for
 
 repo | stats | tags
 ---|---|---
+[appleboy/gorush](https://github.com/appleboy/gorush) | ![stars](https://img.shields.io/github/stars/appleboy/gorush) | service
 [authzed/spicedb](https://github.com/authzed/spicedb) | ![stars](https://img.shields.io/github/stars/authzed/spicedb) | auth
 [chrislusf/seaweedfs](https://github.com/chrislusf/seaweedfs) | ![stars](https://img.shields.io/github/stars/chrislusf/seaweedfs) | storage
 [cockroachdb/cockroach](https://github.com/cockroachdb/cockroach) | ![stars](https://img.shields.io/github/stars/cockroachdb/cockroach) | database
@@ -23,6 +24,7 @@ repo | stats | tags
 [envoyproxy/protoc-gen-validate](https://github.com/envoyproxy/protoc-gen-validate) | ![stars](https://img.shields.io/github/stars/envoyproxy/protoc-gen-validate) | core
 [esphome/esphome](https://github.com/esphome/esphome) | ![stars](https://img.shields.io/github/stars/esphome/esphome) | iot
 [etcd-io/etcd](https://github.com/etcd-io/etcd) | ![stars](https://img.shields.io/github/stars/etcd-io/etcd) | infra
+[google/perfetto](https://github.com/google/perfetto) | ![stars](https://img.shields.io/github/stars/google/perfetto) | infra
 [googleapis/api-common-protos](https://github.com/googleapis/api-common-protos) | ![stars](https://img.shields.io/github/stars/googleapis/api-common-protos) | core
 [googleapis/googleapis](https://github.com/googleapis/googleapis) | ![stars](https://img.shields.io/github/stars/googleapis/googleapis) | cloud
 [grpc/grpc](https://github.com/grpc/grpc) | ![stars](https://img.shields.io/github/stars/grpc/grpc) | core

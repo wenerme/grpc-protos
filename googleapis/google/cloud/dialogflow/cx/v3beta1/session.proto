@@ -198,26 +198,27 @@ message DetectIntentResponse {
 //
 // Multiple request messages should be sent in order:
 //
-// 1. The first message must contain
-// [session][google.cloud.dialogflow.cx.v3beta1.StreamingDetectIntentRequest.session],
-// [query_input][google.cloud.dialogflow.cx.v3beta1.StreamingDetectIntentRequest.query_input] plus optionally
-// [query_params][google.cloud.dialogflow.cx.v3beta1.StreamingDetectIntentRequest.query_params]. If the client
-// wants to receive an audio response, it should also contain
-// [output_audio_config][google.cloud.dialogflow.cx.v3beta1.StreamingDetectIntentRequest.output_audio_config].
+// 1.  The first message must contain
+//     [session][google.cloud.dialogflow.cx.v3beta1.StreamingDetectIntentRequest.session],
+//     [query_input][google.cloud.dialogflow.cx.v3beta1.StreamingDetectIntentRequest.query_input] plus optionally
+//     [query_params][google.cloud.dialogflow.cx.v3beta1.StreamingDetectIntentRequest.query_params]. If the client
+//     wants to receive an audio response, it should also contain
+//     [output_audio_config][google.cloud.dialogflow.cx.v3beta1.StreamingDetectIntentRequest.output_audio_config].
 //
 // 2.  If [query_input][google.cloud.dialogflow.cx.v3beta1.StreamingDetectIntentRequest.query_input] was set to
-// [query_input.audio.config][google.cloud.dialogflow.cx.v3beta1.AudioInput.config], all subsequent messages
-// must contain [query_input.audio.audio][google.cloud.dialogflow.cx.v3beta1.AudioInput.audio] to continue with
-// Speech recognition.
-// If you decide to rather detect an intent from text
-// input after you already started Speech recognition, please send a message
-// with [query_input.text][google.cloud.dialogflow.cx.v3beta1.QueryInput.text].
+//     [query_input.audio.config][google.cloud.dialogflow.cx.v3beta1.AudioInput.config], all subsequent messages
+//     must contain [query_input.audio.audio][google.cloud.dialogflow.cx.v3beta1.AudioInput.audio] to continue with
+//     Speech recognition.
+//     If you decide to rather detect an intent from text
+//     input after you already started Speech recognition, please send a message
+//     with [query_input.text][google.cloud.dialogflow.cx.v3beta1.QueryInput.text].
 //
-// However, note that:
-// * Dialogflow will bill you for the audio duration so far.
-// * Dialogflow discards all Speech recognition results in favor of the input
-// text.
-// * Dialogflow will use the language code from the first message.
+//     However, note that:
+//
+//     * Dialogflow will bill you for the audio duration so far.
+//     * Dialogflow discards all Speech recognition results in favor of the
+//       input text.
+//     * Dialogflow will use the language code from the first message.
 //
 // After you sent all input, you must half-close or abort the request stream.
 message StreamingDetectIntentRequest {
@@ -616,8 +617,22 @@ message QueryResult {
   Match match = 15;
 
   // The free-form diagnostic info. For example, this field could contain
-  // webhook call latency. The string keys of the Struct's fields map can change
-  // without notice.
+  // webhook call latency. The fields of this data can change without notice,
+  // so you should not write code that depends on its structure.
+  //
+  // One of the fields is called "Alternative Matched Intents", which may
+  // aid with debugging. The following describes these intent results:
+  //
+  // - The list is empty if no intent was matched to end-user input.
+  // - Only intents that are referenced in the currently active flow are
+  //   included.
+  // - The matched intent is included.
+  // - Other intents that could have matched end-user input, but did not match
+  //   because they are referenced by intent routes that are out of
+  //   [scope](https://cloud.google.com/dialogflow/cx/docs/concept/handler#scope),
+  //   are included.
+  // - Other intents referenced by intent routes in scope that matched end-user
+  //   input, but had a lower confidence score.
   google.protobuf.Struct diagnostic_info = 10;
 
   // The sentiment analyss result, which depends on
