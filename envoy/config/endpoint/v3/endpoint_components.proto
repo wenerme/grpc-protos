@@ -104,9 +104,9 @@ message LbEndpoint {
   // of the weights of all endpoints in the endpoint's locality to produce a
   // percentage of traffic for the endpoint. This percentage is then further
   // weighted by the endpoint's locality's load balancing weight from
-  // LocalityLbEndpoints. If unspecified, each host is presumed to have equal
-  // weight in a locality. The sum of the weights of all endpoints in the
-  // endpoint's locality must not exceed uint32_t maximal value (4294967295).
+  // LocalityLbEndpoints. If unspecified, will be treated as 1. The sum
+  // of the weights of all endpoints in the endpoint's locality must not
+  // exceed uint32_t maximal value (4294967295).
   google.protobuf.UInt32Value load_balancing_weight = 4 [(validate.rules).uint32 = {gte: 1}];
 }
 
@@ -122,9 +122,8 @@ message LedsClusterLocalityConfig {
 }
 
 // A group of endpoints belonging to a Locality.
-// One can have multiple LocalityLbEndpoints for a locality, but this is
-// generally only done if the different groups need to have different load
-// balancing weights or different priorities.
+// One can have multiple LocalityLbEndpoints for a locality, but only if
+// they have different priorities.
 // [#next-free-field: 9]
 message LocalityLbEndpoints {
   option (udpa.annotations.versioning).previous_message_type =

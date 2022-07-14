@@ -18,7 +18,6 @@ syntax = "proto3";
 
 package containerd.services.content.v1;
 
-import "gogoproto/gogo.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
@@ -98,10 +97,10 @@ message Info {
 	int64 size = 2;
 
 	// CreatedAt provides the time at which the blob was committed.
-	google.protobuf.Timestamp created_at = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+	google.protobuf.Timestamp created_at = 3;
 
 	// UpdatedAt provides the time the info was last updated.
-	google.protobuf.Timestamp updated_at = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+	google.protobuf.Timestamp updated_at = 4;
 
 	// Labels are arbitrary data on snapshots.
 	//
@@ -114,11 +113,11 @@ message InfoRequest {
 }
 
 message InfoResponse {
-	Info info = 1 [(gogoproto.nullable) = false];
+	Info info = 1;
 }
 
 message UpdateRequest {
-	Info info = 1 [(gogoproto.nullable) = false];
+	Info info = 1;
 
 	// UpdateMask specifies which fields to perform the update on. If empty,
 	// the operation applies to all fields.
@@ -130,7 +129,7 @@ message UpdateRequest {
 }
 
 message UpdateResponse {
-	Info info = 1 [(gogoproto.nullable) = false];
+	Info info = 1;
 }
 
 message ListContentRequest {
@@ -148,7 +147,7 @@ message ListContentRequest {
 }
 
 message ListContentResponse {
-	repeated Info info = 1 [(gogoproto.nullable) = false];
+	repeated Info info = 1;
 }
 
 message DeleteContentRequest {
@@ -179,8 +178,8 @@ message ReadContentResponse {
 }
 
 message Status {
-	google.protobuf.Timestamp started_at = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
-	google.protobuf.Timestamp updated_at = 2 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+	google.protobuf.Timestamp started_at = 1;
+	google.protobuf.Timestamp updated_at = 2;
 	string ref = 3;
 	int64 offset = 4;
 	int64 total = 5;
@@ -201,7 +200,7 @@ message ListStatusesRequest {
 }
 
 message ListStatusesResponse {
-	repeated Status statuses = 1 [(gogoproto.nullable) = false];
+	repeated Status statuses = 1;
 }
 
 // WriteAction defines the behavior of a WriteRequest.
@@ -301,13 +300,13 @@ message WriteContentResponse {
 	//
 	// This must be set for stat and commit write actions. All other write
 	// actions may omit this.
-	google.protobuf.Timestamp started_at = 2 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+	google.protobuf.Timestamp started_at = 2;
 
 	// UpdatedAt provides the last time of a successful write.
 	//
 	// This must be set for stat and commit write actions. All other write
 	// actions may omit this.
-	google.protobuf.Timestamp updated_at = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+	google.protobuf.Timestamp updated_at = 3;
 
 	// Offset is the current committed size for the write.
 	int64 offset = 4;

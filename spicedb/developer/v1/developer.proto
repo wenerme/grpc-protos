@@ -1,0 +1,67 @@
+syntax = "proto3";
+package developer.v1;
+
+option go_package = "github.com/authzed/spicedb/pkg/proto/developer/v1";
+
+import "google/protobuf/any.proto";
+import "validate/validate.proto";
+import "core/v1/core.proto";
+
+// RequestContext is the context for setting up a development package environment for one or more
+// operations.
+message RequestContext {
+  string schema = 1;
+  repeated core.v1.RelationTuple relationships = 2;
+}
+
+message DeveloperError {
+  enum Source {
+    UNKNOWN_SOURCE = 0;
+    SCHEMA = 1;
+    RELATIONSHIP = 2;
+    VALIDATION_YAML = 3;
+    CHECK_WATCH = 4;
+    ASSERTION = 5;
+  }
+
+  enum ErrorKind {
+    UNKNOWN_KIND = 0;
+    PARSE_ERROR = 1;
+    SCHEMA_ISSUE = 2;
+    DUPLICATE_RELATIONSHIP = 3;
+    MISSING_EXPECTED_RELATIONSHIP = 4;
+    EXTRA_RELATIONSHIP_FOUND = 5;
+    UNKNOWN_OBJECT_TYPE = 6;
+    UNKNOWN_RELATION = 7;
+    MAXIMUM_RECURSION = 8;
+    ASSERTION_FAILED = 9;
+  }
+
+  string message = 1;
+  uint32 line = 2;
+  uint32 column = 3;
+  Source source = 4;
+  ErrorKind kind = 5;
+  
+  repeated string path = 6;
+
+  // context holds the context for the error. For schema issues, this will be the
+  // name of the object type. For relationship issues, the full relationship string.
+  string context = 7;
+}
+
+// CheckOperationParameters are the parameters for a `check` operation.
+message CheckOperationParameters {
+  core.v1.ObjectAndRelation resource = 1;
+  core.v1.ObjectAndRelation subject = 2;
+}
+
+// RunAssertionsParameters are the parameters for a `runAssertions` operation.
+message RunAssertionsParameters {
+  string assertions_yaml = 1;
+}
+
+// RunValidationParameters are the parameters for a `runValidation` operation.
+message RunValidationParameters {
+  string validation_yaml = 1;
+}
