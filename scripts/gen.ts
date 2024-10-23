@@ -1,4 +1,4 @@
-import * as YAML from "https://deno.land/std@0.63.0/encoding/yaml.ts";
+import * as YAML from "yaml";
 
 interface SourceOptions {
   enabled: boolean;
@@ -25,21 +25,23 @@ interface SyncOptions {
   delete?: boolean;
 }
 
-let srcs = ((await YAML.parse(Deno.readTextFileSync("./sources.yaml"))) as SourceConf[]).map(normalize);
+let srcs = ((await YAML.parse(readTextFileSync("./sources.yaml"))) as SourceConf[]).map(normalize);
 
 let script = [
   `
 #!/usr/bin/env bash
-set -euxo pipefail`.trim(),
+#set -euxo pipefail # for debugging
+set -euo pipefail
+`.trim(),
   srcs.map(genSyncSource).join("\n\n"),
   `git add .`,
   "",
 ];
-await Deno.writeTextFile("scripts/sync.sh", script.join("\n"));
-await Deno.writeTextFile("gen.yaml", YAML.stringify(srcs));
+await writeTextFile("scripts/sync.sh", script.join("\n"));
+await writeTextFile("gen.yaml", YAML.stringify(srcs));
 
 srcs = srcs.sort((a, b) => a.repo.localeCompare(b.repo));
-await Deno.writeTextFile(
+await writeTextFile(
   "repo.md",
   `
 repo | stats | tags
@@ -54,20 +56,29 @@ function genRepoTableRow({ repo, url, tags }: SourceOptions) {
 function genSyncSource(src: SourceOptions) {
   const { repo, git, dir, sync, enabled } = src;
 
-  const exec = [
-    enabled === false ? "if false; then" : "",
-    `echo -e "\\n# synching ${repo}"`,
+  let exec = [
+    `
+# synching ${repo}
+_dir="${dir}"
+echo -e "\\n# synching ${repo}"`,
     // `[ ! -e ${dir} ] || git -C ${dir} remote set-url origin ${git}`,
     // update shallow clone
-    `[ ! -e ${dir} ] || ( git -C ${dir} fetch --depth 1 && git -C ${dir} reset --hard origin )`,
-    `[ -e ${dir} ] || git clone --depth 1 ${git} ${dir}`,
+    `[ ! -e $_dir ] || [ $(($(date +%s) - $(stat -c %Y "$_dir"))) -lt 1800 ] || ( git -C $_dir fetch --depth 1 && git -C $_dir reset --hard origin && touch $_dir )`,
+    // `[ -e ${dir} ] || git clone --depth 1 ${git} ${dir}`,
+    `[ -e $_dir ] || git clone --depth 1 ${git} $_dir`,
+    // sync
     `mkdir -p ${Object.values(sync)
       .map((v) => v.dir)
       .join(" ")}`,
     ...Object.entries(sync).flatMap(([k, v]) => genSync(k, v, src)),
-    enabled === false ? "fi" : "",
-  ].filter(Boolean);
+  ];
 
+  if (!enabled) {
+    exec.unshift("if false; then");
+    exec.push("fi");
+  }
+
+  exec = exec.filter(Boolean);
   return exec.join("\n");
 }
 
@@ -88,7 +99,7 @@ function normalize(c: SourceConf): SourceOptions {
     url: `https://github.com/${repo}`,
     git: `git@github.com:${repo}.git`,
     ...c,
-    tags: Array.isArray(c.tags) ? c.tags : (c.tags ?? "").split(/\s*,\s*/),
+    tags: Array.isArray(c.tags) ? c.tags : (c.tags ?? "").split(",").map((v) => v.trim()),
     sync: Object.fromEntries(
       Object.entries(sync).map(([k, v]) => {
         if (typeof v === "string") {
@@ -104,4 +115,14 @@ function normalize(c: SourceConf): SourceOptions {
     ),
   };
   return o;
+}
+
+import * as fs from "node:fs";
+
+function readTextFileSync(file: string) {
+  return fs.readFileSync(file, "utf-8");
+}
+
+function writeTextFile(file: string, data: string) {
+  return fs.writeFileSync(file, data, "utf-8");
 }

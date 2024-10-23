@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ syntax = "proto3";
 
 package google.spanner.v1;
 
+import "google/api/field_behavior.proto";
 import "google/protobuf/struct.proto";
 import "google/spanner/v1/query_plan.proto";
 import "google/spanner/v1/transaction.proto";
@@ -23,7 +24,7 @@ import "google/spanner/v1/type.proto";
 
 option cc_enable_arenas = true;
 option csharp_namespace = "Google.Cloud.Spanner.V1";
-option go_package = "google.golang.org/genproto/googleapis/spanner/v1;spanner";
+option go_package = "cloud.google.com/go/spanner/apiv1/spannerpb;spannerpb";
 option java_multiple_files = true;
 option java_outer_classname = "ResultSetProto";
 option java_package = "com.google.spanner.v1";
@@ -53,6 +54,16 @@ message ResultSet {
   // Other fields may or may not be populated, based on the
   // [ExecuteSqlRequest.query_mode][google.spanner.v1.ExecuteSqlRequest.query_mode].
   ResultSetStats stats = 3;
+
+  // Optional. A precommit token will be included if the read-write transaction
+  // is on a multiplexed session.
+  // The precommit token with the highest sequence number from this transaction
+  // attempt should be passed to the
+  // [Commit][google.spanner.v1.Spanner.Commit] request for this transaction.
+  // This feature is not yet supported and will result in an UNIMPLEMENTED
+  // error.
+  MultiplexedSessionPrecommitToken precommit_token = 5
+      [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Partial results from a streaming read or SQL query. Streaming reads and
@@ -157,6 +168,16 @@ message PartialResultSet {
   // This field will also be present in the last response for DML
   // statements.
   ResultSetStats stats = 5;
+
+  // Optional. A precommit token will be included if the read-write transaction
+  // is on a multiplexed session.
+  // The precommit token with the highest sequence number from this transaction
+  // attempt should be passed to the
+  // [Commit][google.spanner.v1.Spanner.Commit] request for this transaction.
+  // This feature is not yet supported and will result in an UNIMPLEMENTED
+  // error.
+  MultiplexedSessionPrecommitToken precommit_token = 8
+      [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Metadata about a [ResultSet][google.spanner.v1.ResultSet] or [PartialResultSet][google.spanner.v1.PartialResultSet].
@@ -174,6 +195,18 @@ message ResultSetMetadata {
   // If the read or SQL query began a transaction as a side-effect, the
   // information about the new transaction is yielded here.
   Transaction transaction = 2;
+
+  // A SQL query can be parameterized. In PLAN mode, these parameters can be
+  // undeclared. This indicates the field names and types for those undeclared
+  // parameters in the SQL query. For example, a SQL query like `"SELECT * FROM
+  // Users where UserId = @userId and UserName = @userName "` could return a
+  // `undeclared_parameters` value like:
+  //
+  //     "fields": [
+  //       { "name": "UserId", "type": { "code": "INT64" } },
+  //       { "name": "UserName", "type": { "code": "STRING" } },
+  //     ]
+  StructType undeclared_parameters = 3;
 }
 
 // Additional statistics about a [ResultSet][google.spanner.v1.ResultSet] or [PartialResultSet][google.spanner.v1.PartialResultSet].

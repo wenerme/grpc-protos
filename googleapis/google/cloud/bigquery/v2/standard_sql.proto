@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,21 +18,54 @@ package google.cloud.bigquery.v2;
 
 import "google/api/field_behavior.proto";
 
-option go_package = "google.golang.org/genproto/googleapis/cloud/bigquery/v2;bigquery";
+option go_package = "cloud.google.com/go/bigquery/apiv2/bigquerypb;bigquerypb";
 option java_outer_classname = "StandardSqlProto";
 option java_package = "com.google.cloud.bigquery.v2";
 
-// The type of a variable, e.g., a function argument.
-// Examples:
-// INT64: {type_kind="INT64"}
-// ARRAY<STRING>: {type_kind="ARRAY", array_element_type="STRING"}
-// STRUCT<x STRING, y ARRAY<DATE>>:
-//   {type_kind="STRUCT",
-//    struct_type={fields=[
-//      {name="x", type={type_kind="STRING"}},
-//      {name="y", type={type_kind="ARRAY", array_element_type="DATE"}}
-//    ]}}
+// The data type of a variable such as a function argument.
+// Examples include:
+//
+// * INT64: `{"typeKind": "INT64"}`
+//
+// * ARRAY<STRING>:
+//
+//     {
+//       "typeKind": "ARRAY",
+//       "arrayElementType": {"typeKind": "STRING"}
+//     }
+//
+// * STRUCT<x STRING, y ARRAY<DATE>>:
+//
+//     {
+//       "typeKind": "STRUCT",
+//       "structType":
+//       {
+//         "fields":
+//         [
+//           {
+//             "name": "x",
+//             "type": {"typeKind": "STRING"}
+//           },
+//           {
+//             "name": "y",
+//             "type":
+//             {
+//               "typeKind": "ARRAY",
+//               "arrayElementType": {"typeKind": "DATE"}
+//             }
+//           }
+//         ]
+//       }
+//     }
+//
+// * RANGE<DATE>:
+//
+//     {
+//       "typeKind": "RANGE",
+//       "rangeElementType": {"typeKind": "DATE"}
+//     }
 message StandardSqlDataType {
+  // The kind of the datatype.
   enum TypeKind {
     // Invalid type.
     TYPE_KIND_UNSPECIFIED = 0;
@@ -86,18 +119,26 @@ message StandardSqlDataType {
     // Encoded as a list with fields of type Type.struct_type[i]. List is used
     // because a JSON object cannot have duplicate field names.
     STRUCT = 17;
+
+    // Encoded as a pair with types matching range_element_type. Pairs must
+    // begin with "[", end with ")", and be separated by ", ".
+    RANGE = 29;
   }
 
   // Required. The top level type of this field.
-  // Can be any standard SQL data type (e.g., "INT64", "DATE", "ARRAY").
+  // Can be any GoogleSQL data type (e.g., "INT64", "DATE", "ARRAY").
   TypeKind type_kind = 1 [(google.api.field_behavior) = REQUIRED];
 
+  // For complex types, the sub type information.
   oneof sub_type {
     // The type of the array's elements, if type_kind = "ARRAY".
     StandardSqlDataType array_element_type = 2;
 
     // The fields of this struct, in order, if type_kind = "STRUCT".
     StandardSqlStructType struct_type = 3;
+
+    // The type of the range's elements, if type_kind = "RANGE".
+    StandardSqlDataType range_element_type = 4;
   }
 }
 
@@ -112,7 +153,9 @@ message StandardSqlField {
   StandardSqlDataType type = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
+// The representation of a SQL STRUCT type.
 message StandardSqlStructType {
+  // Fields within the struct.
   repeated StandardSqlField fields = 1;
 }
 

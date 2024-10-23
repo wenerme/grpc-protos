@@ -2,14 +2,15 @@ syntax = "proto3";
 
 package yandex.cloud.compute.v1.instancegroup;
 
-import "yandex/cloud/validation.proto";
-import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "yandex/cloud/validation.proto";
 
 option go_package = "github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1/instancegroup;instancegroup";
 option java_package = "yandex.cloud.api.compute.v1.instancegroup";
 
 message InstanceGroup {
+  reserved 13;
   // ID of the instance group.
   string id = 1;
 
@@ -81,6 +82,9 @@ message InstanceGroup {
   // Returned if there is a working load balancer that the target group is connected to.
   ApplicationLoadBalancerState application_load_balancer_state = 21;
 
+  // AutoHealingPolicy policy of the instance group.
+  AutoHealingPolicy auto_healing_policy = 22;
+
   enum Status {
     STATUS_UNSPECIFIED = 0;
 
@@ -130,7 +134,10 @@ message ApplicationLoadBalancerState {
 }
 
 message Variable {
-  string key = 1 [(length) = "1-128", (pattern) = "[a-zA-Z0-9._-]*"];
+  string key = 1 [
+    (length) = "1-128",
+    (pattern) = "[a-zA-Z0-9._-]*"
+  ];
   string value = 2 [(length) = "<=128"];
 }
 
@@ -143,6 +150,7 @@ message LoadBalancerState {
 }
 
 message ManagedInstancesState {
+  reserved 2 to 3;
   // Target number of instances for this instance group.
   int64 target_size = 1;
 
@@ -299,10 +307,16 @@ message ScalePolicy {
     MetricType metric_type = 2 [(required) = true];
 
     // Name of custom metric in Monitoring that should be used for scaling.
-    string metric_name = 3 [(required) = true, (pattern) = "[a-zA-Z0-9./@_][ 0-9a-zA-Z./@_,:;()\\[\\]<>-]{0,198}"];
+    string metric_name = 3 [
+      (required) = true,
+      (pattern) = "[a-zA-Z0-9./@_][ 0-9a-zA-Z./@_,:;()\\[\\]<>-]{0,198}"
+    ];
 
     // Labels of custom metric in Monitoring that should be used for scaling.
-    map<string, string> labels = 5 [(pattern) = "[a-zA-Z0-9./@_][ 0-9a-zA-Z./@_,:;()\\[\\]<>-]{0,198}", (map_key).pattern = "^[a-zA-Z][0-9a-zA-Z_]{0,31}$"];
+    map<string, string> labels = 5 [
+      (pattern) = "[a-zA-Z0-9./@_][ 0-9a-zA-Z./@_,:;()\\[\\]<>-]{0,198}",
+      (map_key).pattern = "^[a-zA-Z][0-9a-zA-Z_]{0,31}$"
+    ];
 
     // Target value for the custom metric. Instance Groups maintains this level for each availability zone.
     double target = 4 [(value) = ">0"];
@@ -314,7 +328,6 @@ message ScalePolicy {
     string service = 7 [(length) = "<=200"];
   }
 
-
   message FixedScale {
     // Number of instances in the instance group.
     int64 size = 1 [(value) = "1-100"];
@@ -322,6 +335,8 @@ message ScalePolicy {
 }
 
 message DeployPolicy {
+  reserved 9 to 13;
+  reserved 4 to 5;
   // The maximum number of running instances that can be taken offline (i.e., stopped or deleted) at the same time
   // during the update process.
   // If [max_expansion] is not specified or set to zero, [max_unavailable] must be set to a non-zero value.
@@ -351,6 +366,10 @@ message DeployPolicy {
   // Affects the lifecycle of the instance during deployment.
   Strategy strategy = 8;
 
+  // If instance update requires a less disruptive action than [minimal_action],
+  // Instance Groups performs [minimal_action] to execute the update
+  MinimalAction minimal_action = 14;
+
   enum Strategy {
     STRATEGY_UNSPECIFIED = 0;
 
@@ -361,6 +380,16 @@ message DeployPolicy {
     // Instead, it will wait until the instance stops itself or becomes unhealthy.
     OPPORTUNISTIC = 2;
   }
+
+  enum MinimalAction {
+    MINIMAL_ACTION_UNSPECIFIED = 0;
+    // Updating an instance without stopping. This is the default.
+    LIVE_UPDATE = 1;
+    // Updating an instance with restart: stopping and then starting the instance.
+    RESTART = 2;
+    // Re-creating an instance: deleting an instance and creating a new one.
+    RECREATE = 3;
+  }
 }
 
 message AllocationPolicy {
@@ -370,6 +399,14 @@ message AllocationPolicy {
   message Zone {
     // ID of the availability zone where the instance resides.
     string zone_id = 1 [(required) = true];
+    // Each instance in a zone will be associated with exactly one of a tag from a pool below.
+    // All specified tags must be unique across the whole group not only the zone.
+    // It is guaranteed that during whole deploy only tags from prefix of the specified list will be used.
+    // It is possible to use tag associated with instance in templating via {instance.tag}.
+    repeated string instance_tags_pool = 2 [
+      (unique) = true,
+      (length) = "3-50"
+    ];
   }
 }
 
@@ -378,7 +415,12 @@ message InstanceTemplate {
   string description = 1 [(length) = "<=256"];
 
   // Resource labels as `key:value` pairs.
-  map<string, string> labels = 2 [(size) = "<=64", (length) = "<=128", (map_key).length = "1-63", (map_key).pattern = "[a-z][-_./\\@0-9a-z]*"];
+  map<string, string> labels = 2 [
+    (size) = "<=64",
+    (length) = "<=128",
+    (map_key).length = "1-63",
+    (map_key).pattern = "[a-z][-_./\\@0-9a-z]*"
+  ];
 
   // ID of the hardware platform configuration for the instance.
   // Platforms allows you to create various types of instances: with a large amount of memory,
@@ -406,7 +448,12 @@ message InstanceTemplate {
   //
   // For example, you may use the metadata in order to provide your public SSH key to the instance.
   // For more information, see [Metadata](/docs/compute/concepts/vm-metadata).
-  map<string, string> metadata = 5 [(size) = "<=128", (length) = "<=262144", (map_key).length = "1-63", (map_key).pattern = "[a-z][-_0-9a-z]*"];
+  map<string, string> metadata = 5 [
+    (size) = "<=128",
+    (length) = "<=262144",
+    (map_key).length = "1-63",
+    (map_key).pattern = "[a-z][-_0-9a-z]*"
+  ];
 
   // Boot disk specification that will be attached to the instance.
   AttachedDiskSpec boot_disk_spec = 6 [(required) = true];
@@ -415,7 +462,7 @@ message InstanceTemplate {
   repeated AttachedDiskSpec secondary_disk_specs = 7 [(size) = "<=3"];
 
   // Array of network interfaces that will be attached to the instance.
-  repeated NetworkInterfaceSpec network_interface_specs = 8 [(size) = "1"];
+  repeated NetworkInterfaceSpec network_interface_specs = 8 [(required) = true];
 
   // Scheduling policy for the instance.
   SchedulingPolicy scheduling_policy = 9;
@@ -453,6 +500,46 @@ message InstanceTemplate {
 
   // Placement Group
   PlacementPolicy placement_policy = 14;
+
+  // Array of filesystems to attach to the instance.
+  //
+  // The filesystems must reside in the same availability zone as the instance.
+  //
+  // To use the instance with an attached filesystem, the latter must be mounted.
+  // For details, see [documentation](/docs/compute/operations/filesystem/attach-to-vm).
+  repeated AttachedFilesystemSpec filesystem_specs = 15;
+
+  // Metadata options for the instance
+  MetadataOptions metadata_options = 16;
+}
+
+message AttachedFilesystemSpec {
+  enum Mode {
+    MODE_UNSPECIFIED = 0;
+
+    // Read-only access.
+    READ_ONLY = 1;
+
+    // Read/Write access. Default value.
+    READ_WRITE = 2;
+  }
+
+  // Mode of access to the filesystem that should be attached.
+  Mode mode = 1;
+
+  // Name of the device representing the filesystem on the instance.
+  //
+  // The name should be used for referencing the filesystem from within the instance
+  // when it's being mounted, resized etc.
+  //
+  // If not specified, a random value will be generated.
+  string device_name = 2 [(pattern) = "|[a-z][-_0-9a-z]{0,19}"];
+
+  // ID of the filesystem that should be attached.
+  string filesystem_id = 3 [
+    (length) = "<=128",
+    (pattern) = "[-a-zA-Z0-9._{}]*"
+  ];
 }
 
 message PlacementPolicy {
@@ -495,6 +582,7 @@ message ResourcesSpec {
 }
 
 message AttachedDiskSpec {
+  reserved 5 to 6;
   enum Mode {
     MODE_UNSPECIFIED = 0;
 
@@ -519,7 +607,10 @@ message AttachedDiskSpec {
   DiskSpec disk_spec = 3 [(required) = true];
 
   // Set to use an existing disk. To set use variables.
-  string disk_id = 4 [(length) = "<=128", (pattern) = "[-a-zA-Z0-9._{}]*"];
+  string disk_id = 4 [
+    (length) = "<=128",
+    (pattern) = "[-a-zA-Z0-9._{}]*"
+  ];
 
   message DiskSpec {
     // Description of the disk.
@@ -543,6 +634,9 @@ message AttachedDiskSpec {
     // It will be a user's responsibility to delete such disks.
     bool preserve_after_instance_delete = 6;
   }
+
+  // When set can be later used to change DiskSpec of actual disk.
+  string name = 7 [(length) = "<=128"];
 }
 
 message NetworkInterfaceSpec {
@@ -624,11 +718,16 @@ message NetworkSettings {
 }
 
 message LoadBalancerSpec {
-  // Specification of the target group that the instance group will be added to. For more information, see [Target groups and resources](/docs/load-balancer/concepts/target-resources).
+  reserved 3;
+  // Specification of the target group that the instance group will be added to. For more information, see [Target groups and resources](/docs/network-load-balancer/concepts/target-resources).
   TargetGroupSpec target_group_spec = 1;
+
   // Timeout for waiting for the VM to be checked by the load balancer. If the timeout is exceeded,
   // the VM will be turned off based on the deployment policy. Specified in seconds.
   google.protobuf.Duration max_opening_traffic_duration = 2 [(value) = ">=1s"];
+
+  // Do not wait load balancer health checks.
+  bool ignore_health_checks = 4;
 }
 
 message TargetGroupSpec {
@@ -639,7 +738,13 @@ message TargetGroupSpec {
   string description = 2 [(length) = "<=256"];
 
   // Resource labels as `key:value` pairs.
-  map<string, string> labels = 3 [(size) = "<=64", (length) = "<=63", (pattern) = "[-_./\\@0-9a-z]*", (map_key).length = "1-63", (map_key).pattern = "[a-z][-_./\\@0-9a-z]*"];
+  map<string, string> labels = 3 [
+    (size) = "<=64",
+    (length) = "<=63",
+    (pattern) = "[-_./\\@0-9a-z]*",
+    (map_key).length = "1-63",
+    (map_key).pattern = "[a-z][-_./\\@0-9a-z]*"
+  ];
 }
 
 message ApplicationLoadBalancerSpec {
@@ -649,6 +754,9 @@ message ApplicationLoadBalancerSpec {
   // Timeout for waiting for the VM to be checked by the load balancer. If the timeout is exceeded,
   // the VM will be turned off based on the deployment policy. Specified in seconds.
   google.protobuf.Duration max_opening_traffic_duration = 2 [(value) = ">=1s"];
+
+  // Do not wait load balancer health checks.
+  bool ignore_health_checks = 3;
 }
 
 message ApplicationTargetGroupSpec {
@@ -661,7 +769,7 @@ message ApplicationTargetGroupSpec {
 }
 
 message HealthChecksSpec {
-  // Health checking specification. For more information, see [Health check](/docs/load-balancer/concepts/health-check).
+  // Health checking specification. For more information, see [Health check](/docs/network-load-balancer/concepts/health-check).
   repeated HealthCheckSpec health_check_specs = 1 [(size) = ">=1"];
   // Timeout for waiting for the VM to become healthy. If the timeout is exceeded,
   // the VM will be turned off based on the deployment policy. Specified in seconds.
@@ -669,7 +777,6 @@ message HealthChecksSpec {
 }
 
 message HealthCheckSpec {
-
   message TcpOptions {
     // Port to use for TCP health checks.
     int64 port = 1 [(value) = "1-65535"];
@@ -709,6 +816,7 @@ message HealthCheckSpec {
 
 // A ManagedInstance resource. For more information, see [Instance Groups Concepts](/docs/compute/concepts/instance-groups/).
 message ManagedInstance {
+  reserved 10 to 13;
 
   enum Status {
     STATUS_UNSPECIFIED = 0;
@@ -786,11 +894,13 @@ message ManagedInstance {
 
   // The timestamp in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt) text format when the status of the managed instance was last changed.
   google.protobuf.Timestamp status_changed_at = 9;
+
+  // Managed instance tag.
+  string instance_tag = 14;
 }
 
 message NetworkInterface {
   // The index of the network interface, generated by the server, 0,1,2... etc.
-  // Currently only one network interface is supported per instance.
   string index = 1;
 
   // MAC address that is assigned to the network interface.
@@ -847,4 +957,38 @@ message LogRecord {
 
   // The log message.
   string message = 2;
+}
+
+message AutoHealingPolicy {
+  enum AutoHealingAction {
+    AUTO_HEALING_ACTION_UNSPECIFIED = 0;
+    // Re-starting an instance with restart: stopping and then starting the instance.
+    RESTART = 1;
+    // Re-creating an instance: deleting an instance and creating a new one.
+    RECREATE = 2;
+    // No action
+    NONE = 3;
+  }
+
+  // Instance Groups performs [auto_healing_action] when instance becomes unhealthy.
+  AutoHealingAction auto_healing_action = 1;
+}
+
+message MetadataOptions {
+  // Enabled access to GCE flavored metadata
+  MetadataOption gce_http_endpoint = 1;
+  // Enabled access to AWS flavored metadata (IMDSv1)
+  MetadataOption aws_v1_http_endpoint = 2;
+  // Enabled access to IAM credentials with GCE flavored metadata
+  MetadataOption gce_http_token = 3;
+  // Enabled access to IAM credentials with AWS flavored metadata (IMDSv1)
+  MetadataOption aws_v1_http_token = 4;
+}
+
+enum MetadataOption {
+  METADATA_OPTION_UNSPECIFIED = 0;
+  // Option is enabled
+  ENABLED = 1;
+  // Option is disabled
+  DISABLED = 2;
 }

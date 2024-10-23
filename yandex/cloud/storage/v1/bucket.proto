@@ -5,7 +5,6 @@ package yandex.cloud.storage.v1;
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
-
 import "yandex/cloud/validation.proto";
 
 option go_package = "github.com/yandex-cloud/go-genproto/yandex/cloud/storage/v1;storage";
@@ -30,8 +29,8 @@ message Bucket {
   // For details, see [documentation](/docs/storage/concepts/bucket#bucket-access).
   AnonymousAccessFlags anonymous_access_flags = 4;
 
-  // Default storage class for objects in the bucket. Supported classes are standard storage (`STANDARD`) and
-  // cold storage (`COLD`, `STANDARD_IA`, `NEARLINE` all synonyms).
+  // Default storage class for objects in the bucket. Supported classes are standard storage (`STANDARD`), cold storage
+  // (`COLD`, `STANDARD_IA`, `NEARLINE` all synonyms), and ice storage (`ICE` and `GLACIER` are synonyms).
   // For details, see [documentation](/docs/storage/concepts/storage-class).
   string default_storage_class = 5;
 
@@ -65,6 +64,25 @@ message Bucket {
   // List of object lifecycle rules for the bucket.
   // For details, see [documentation](/docs/storage/concepts/lifecycles).
   repeated LifecycleRule lifecycle_rules = 13;
+
+  // List of tags for the bucket.
+  // For details, see [documentation](/docs/resource-manager/concepts/labels).
+  repeated Tag tags = 14;
+
+  // Configuration for object lock on the bucket.
+  // For details about the concept, see [documentation](/docs/storage/concepts/object-lock).
+  ObjectLock object_lock = 15;
+
+  // Configuration for bucket's encryption
+  // For detauls, see [documentation](/docs/storage/concepts/encryption)
+  Encryption encryption = 16;
+}
+
+message Tag {
+  // Key of the bucket tag.
+  string key = 1;
+  // Value of the bucket tag.
+  string value = 2;
 }
 
 message ACL {
@@ -135,10 +153,10 @@ message ACL {
     }
 
     // Permission granted by the grant.
-    Permission permission = 1 [ (required) = true ];
+    Permission permission = 1 [(required) = true];
 
     // The grantee type for the grant.
-    GrantType grant_type = 2 [ (required) = true ];
+    GrantType grant_type = 2 [(required) = true];
 
     // ID of the account who is a grantee. Required when the [grant_type] is `GRANT_TYPE_ACCOUNT`.
     string grantee_id = 3;
@@ -198,7 +216,10 @@ message CorsRule {
   // [S3-compatible API reference](/docs/storage/s3/api-ref/object/options)), the specified method is checked against
   // the list of the allowed methods. If there is a match, all the allowed methods are listed in the
   // `Access-Control-Allow-Methods` header of the response.
-  repeated Method allowed_methods = 2 [ (size) = ">0", (unique) = true ];
+  repeated Method allowed_methods = 2 [
+    (size) = ">0",
+    (unique) = true
+  ];
 
   // List of HTTP headers allowed by the CORS rule.
   //
@@ -215,7 +236,7 @@ message CorsRule {
   //
   // Each string in the list can contain at most one `*` wildcard character that matches 0 or more characters.
   // For example, `http://*.example.com` value will allow requests originating from all subdomains of `example.com`.
-  repeated string allowed_origins = 4 [ (size) = ">0" ];
+  repeated string allowed_origins = 4 [(size) = ">0"];
 
   // List of headers contained in responses to CORS requests that can be accessed by applications.
   repeated string expose_headers = 5;
@@ -260,7 +281,7 @@ message WebsiteSettings {
     // HTTP status code of the redirect response.
     //
     // Default value: `"301"`.
-    string http_redirect_code = 2 [ (pattern) = "3(0[1-9]|[1-9][0-9])" ];
+    string http_redirect_code = 2 [(pattern) = "3(0[1-9]|[1-9][0-9])"];
 
     // Scheme of the redirect URI.
     Protocol protocol = 3;
@@ -314,6 +335,12 @@ message LifecycleRule {
     google.protobuf.Int64Value days_after_expiration = 1;
   }
 
+  message NoncurrentDeleteMarkers {
+    // Time period, in number of days since the version of a delete marker was classified as non-current, after which
+    // the delete marker expires.
+    google.protobuf.Int64Value noncurrent_days = 1;
+  }
+
   message NoncurrentExpiration {
     // Time period, in number of days since the version of an object was classified as non-current, after which the
     // version expires.
@@ -329,11 +356,11 @@ message LifecycleRule {
     // version is transitioned.
     google.protobuf.Int64Value noncurrent_days = 1;
 
-    // Storage class to which a non-current version of an object is transitioned.
+    // Storage class to which a non-current version of an object is transitioned from standard storage.
     //
     // The only supported class is cold storage (`COLD`, `STANDARD_IA`, `NEARLINE` all synonyms). Transitions from cold
-    // to standard storage are not allowed.
-    string storage_class = 2 [ (required) = true ];
+    // to standard storage and transitions to or from ice storage are not allowed.
+    string storage_class = 2 [(required) = true];
   }
 
   // List of transition rules.
@@ -346,6 +373,7 @@ message LifecycleRule {
   // For the bucket with versioning enabled ([Bucket.versioning] is `VERSIONING_ENABLED`) or suspended
   // (`VERSIONING_SUSPENDED`), the current version of the object is transitioned to the specified storage class.
   message Transition {
+    reserved 3;
     // Specific date of object transition.
     //
     // The rule continues to apply even after the date has passed, i.e. any new objects created in the bucket are
@@ -360,11 +388,11 @@ message LifecycleRule {
     // At most one of [days] and [date] fields can be specified.
     google.protobuf.Int64Value days = 2;
 
-    // Storage class to which an object is transitioned.
+    // Storage class to which an object is transitioned from standard storage.
     //
     // The only supported class is cold storage (`COLD`, `STANDARD_IA`, `NEARLINE` all synonyms). Transitions from cold
-    // to standard storage are not allowed.
-    string storage_class = 4 [ (required) = true ];
+    // to standard storage and transitions to or from ice storage are not allowed.
+    string storage_class = 4 [(required) = true];
   }
 
   message Expiration {
@@ -389,8 +417,22 @@ message LifecycleRule {
   }
 
   message RuleFilter {
+    message And {
+      string prefix = 1;
+      google.protobuf.Int64Value object_size_greater_than = 2;
+      google.protobuf.Int64Value object_size_less_than = 3;
+      repeated Tag tag = 4;
+    }
     // Key prefix that the object must have in order for the rule to apply.
     string prefix = 1;
+    // Size that the object must be greater.
+    google.protobuf.Int64Value object_size_greater_than = 2;
+    // Size that the object must be less t.
+    google.protobuf.Int64Value object_size_less_than = 3;
+    // Tags that the object's tag set must have for the rule to apply.
+    Tag tag = 4;
+    // Apply a logical AND to all of the predicates configured inside the And operator.
+    And and_operator = 5;
   }
 
   // ID of the rule. Provided by the client or generated at creation time.
@@ -445,6 +487,13 @@ message LifecycleRule {
   //
   // At transition, the non-current version of the object is transitioned to the specified storage class.
   repeated NoncurrentTransition noncurrent_transitions = 8;
+
+  // Expiration rule for non-current delete markers of an objects in a bucket with versioning
+  // enabled ([Bucket.versioning] is `VERSIONING_ENABLED`) or suspended (`VERSIONING_SUSPENDED`).
+  // Works in the same way as noncurrent_expiration rule, but only for delete markers.
+  //
+  // At expiration, the non-current delete marker of the object is deleted and cannot be recovered.
+  NoncurrentDeleteMarkers noncurrent_delete_markers = 9;
 }
 
 enum Versioning {
@@ -498,8 +547,8 @@ message Counters {
 
 // A resource for size of available space in a bucket for a storage class.
 message OptionalSizeByClass {
-  // Storage class. Supported classes are standard storage (`STANDARD`) and cold storage (`COLD`, `STANDARD_IA`,
-  // `NEARLINE` all synonyms).
+  // Storage class. Supported classes are standard storage (`STANDARD`), cold storage (`COLD`, `STANDARD_IA`, `NEARLINE`
+  // all synonyms), and ice storage (`ICE` and `GLACIER` are synonyms).
   // For details, see [documentation](/docs/storage/concepts/storage-class).
   string storage_class = 1;
 
@@ -509,8 +558,8 @@ message OptionalSizeByClass {
 
 // A resource for size of used space in a bucket for a storage class.
 message SizeByClass {
-  // Storage class. Supported classes are standard storage (`STANDARD`) and cold storage (`COLD`, `STANDARD_IA`,
-  // `NEARLINE` all synonyms).
+  // Storage class. Supported classes are standard storage (`STANDARD`), cold storage (`COLD`, `STANDARD_IA`, `NEARLINE`
+  // all synonyms), and ice storage (`ICE` and `GLACIER` are synonyms).
   // For details, see [documentation](/docs/storage/concepts/storage-class).
   string storage_class = 1;
 
@@ -520,8 +569,8 @@ message SizeByClass {
 
 // A resource for object-related statistics for a storage class by type of upload (simple vs. multipart).
 message CountersByClass {
-  // Storage class. Supported classes are standard storage (`STANDARD`) and cold storage (`COLD`, `STANDARD_IA`,
-  // `NEARLINE` all synonyms).
+  // Storage class. Supported classes are standard storage (`STANDARD`), cold storage (`COLD`, `STANDARD_IA`, `NEARLINE`
+  // all synonyms), and ice storage (`ice` and `GLACIER` are synonyms).
   // For details, see [documentation](/docs/storage/concepts/storage-class).
   string storage_class = 1;
 
@@ -549,8 +598,8 @@ message BucketStats {
   // Object-related statistics by storage class and type of upload (simple vs. multipart), in bytes.
   repeated CountersByClass storage_class_counters = 6;
 
-  // Default storage class for objects in the bucket. Supported classes are standard storage (`STANDARD`) and
-  // cold storage (`COLD`, `STANDARD_IA`, `NEARLINE` all synonyms).
+  // Default storage class for objects in the bucket. Supported classes are standard storage (`STANDARD`), cold storage
+  // (`COLD`, `STANDARD_IA`, `NEARLINE` all synonyms), and ice storage (`ICE` and `GLACIER` are synonyms).
   // For details, see [documentation](/docs/storage/concepts/storage-class).
   google.protobuf.StringValue default_storage_class = 7;
 
@@ -604,4 +653,47 @@ message HTTPSConfig {
   // To get information about the certificate from Certificate Manager, make a
   // [yandex.cloud.certificatemanager.v1.CertificateService.Get] request.
   string certificate_id = 8;
+}
+
+// A resource for Object Lock configuration of a bucket.
+// For details about the concept, see [documentation](/docs/storage/concepts/object-lock).
+message ObjectLock {
+  // Activity status of the object lock settings on the bucket
+  enum ObjectLockStatus {
+    OBJECT_LOCK_STATUS_UNSPECIFIED = 0;
+    OBJECT_LOCK_STATUS_DISABLED = 1;
+    OBJECT_LOCK_STATUS_ENABLED = 2;
+  }
+
+  // Default lock configuration for added objects
+  message DefaultRetention {
+    // Lock type
+    enum Mode {
+      MODE_UNSPECIFIED = 0;
+      MODE_GOVERNANCE = 1;
+      MODE_COMPLIANCE = 2;
+    }
+
+    Mode mode = 1;
+    oneof period {
+      option (exactly_one) = true;
+
+      // Number of days for locking
+      int64 days = 2;
+      // Number of years for locking
+      int64 years = 3;
+    }
+  }
+
+  ObjectLockStatus status = 2;
+  DefaultRetention default_retention = 3;
+}
+
+message Encryption {
+  message EncryptionRule {
+    string kms_master_key_id = 1;
+    string sse_algorithm = 2;
+  }
+
+  repeated EncryptionRule rules = 1;
 }

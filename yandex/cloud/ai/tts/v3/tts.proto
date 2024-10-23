@@ -77,6 +77,12 @@ message AudioVariable {
 message UtteranceSynthesisResponse {
     // Part of synthesized audio.
     AudioChunk audio_chunk = 1;
+    // Part of synthesized text.
+    TextChunk text_chunk = 2;
+    // Start time of the audio chunk in milliseconds.
+    int64 start_ms = 3;
+    // Length of the audio chunk in milliseconds.
+    int64 length_ms = 4;
 }
 
 message AudioTemplate {
@@ -93,6 +99,11 @@ message AudioChunk {
     bytes data = 1;
 }
 
+message TextChunk {
+    // Synthesized text.
+    string text = 1;
+}
+
 message TextTemplate {
     // Template text.
     //
@@ -103,6 +114,27 @@ message TextTemplate {
     // Sample: `{animal: cat, place: forest}`
     repeated TextVariable variables = 2;
 }
+
+message DurationHint {
+    enum DurationHintPolicy {
+        DURATION_HINT_POLICY_UNSPECIFIED = 0;
+
+        // Limit audio duration to exact value.
+        EXACT_DURATION = 1;
+
+        // Limit the minimum audio duration.
+        MIN_DURATION = 2;
+
+        // Limit the maximum audio duration.
+        MAX_DURATION = 3;
+    }
+
+    // Type of duration constraint.
+    DurationHintPolicy policy = 1;
+
+    // Constraint on audio duration in milliseconds.
+    int64 duration_ms = 2;
+  }
 
 
 message Hints {
@@ -125,6 +157,12 @@ message Hints {
 
         // Hint to specify pronunciation character for the speaker.
         string role = 5;
+
+        // Hint to increase (or decrease) speaker's pitch, measured in Hz. Valid values are in range [-1000;1000], default value is 0.
+        double pitch_shift = 6;
+
+        // Hint to limit both minimum and maximum audio duration.
+        DurationHint duration = 7;
     }
 }
 

@@ -28,6 +28,7 @@ option java_outer_classname = "WorkflowServiceProto";
 option java_package = "com.uber.cadence.api.v1";
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 import "uber/cadence/api/v1/common.proto";
 import "uber/cadence/api/v1/history.proto";
 import "uber/cadence/api/v1/query.proto";
@@ -35,11 +36,17 @@ import "uber/cadence/api/v1/tasklist.proto";
 import "uber/cadence/api/v1/workflow.proto";
 
 service WorkflowAPI {
+  // RestartWorkflowExecution restarts a previous workflow
+  // If the workflow is currently running it will terminate and restart
+  rpc RestartWorkflowExecution(RestartWorkflowExecutionRequest) returns (RestartWorkflowExecutionResponse);
   // StartWorkflowExecution starts a new long running workflow instance.  It will create the instance with
   // 'WorkflowExecutionStarted' event in history and also schedule the first DecisionTask for the worker to make the
   // first decision for this instance.  It will return 'WorkflowExecutionAlreadyStartedError', if an instance already
   // exists with same workflowId.
   rpc StartWorkflowExecution(StartWorkflowExecutionRequest) returns (StartWorkflowExecutionResponse);
+  // StartWorkflowExecutionAsync starts a new long running workflow instance asynchronously. It will push a StartWorkflowExecutionRequest to a queue
+  // and immediately return a response. The request will be processed by a separate consumer eventually.
+  rpc StartWorkflowExecutionAsync(StartWorkflowExecutionAsyncRequest) returns (StartWorkflowExecutionAsyncResponse);
 
   // SignalWorkflowExecution is used to send a signal event to running workflow execution.  This results in
   // WorkflowExecutionSignaled event recorded in the history and a decision task being created for the execution.
@@ -50,6 +57,10 @@ service WorkflowAPI {
   // the execution.  If the workflow is not running or not found, this results in WorkflowExecutionStarted and
   // WorkflowExecutionSignaled events being recorded in history, and a decision task being created for the execution.
   rpc SignalWithStartWorkflowExecution(SignalWithStartWorkflowExecutionRequest) returns (SignalWithStartWorkflowExecutionResponse);
+
+  // SignalWithStartWorkflowExecutionAsync is used to ensure sending signal to a workflow asynchronously.  It will push a SignalWithStartWorkflowExecutionRequest to a queue
+  // and immediately return a response. The request will be processed by a separate consumer eventually.
+  rpc SignalWithStartWorkflowExecutionAsync(SignalWithStartWorkflowExecutionAsyncRequest) returns (SignalWithStartWorkflowExecutionAsyncResponse);
 
   // ResetWorkflowExecution reset an existing workflow execution to DecisionTaskCompleted event(exclusive).
   // And it will immediately terminating the current execution instance.
@@ -88,8 +99,28 @@ service WorkflowAPI {
 
   // RefreshWorkflowTasks refreshes all tasks of a workflow.
   rpc RefreshWorkflowTasks(RefreshWorkflowTasksRequest) returns(RefreshWorkflowTasksResponse);
+
+  // Diagnoses a workflow execution and provides a report as response
+  rpc DiagnoseWorkflowExecution(DiagnoseWorkflowExecutionRequest) returns (DiagnoseWorkflowExecutionResponse);
 }
 
+message RestartWorkflowExecutionRequest {
+  string domain = 1;
+  WorkflowExecution workflow_execution = 2;
+  string identity = 3;
+  string reason = 4;
+}
+
+message DiagnoseWorkflowExecutionRequest {
+  string domain = 1;
+  WorkflowExecution workflow_execution = 2;
+  string identity = 3;
+}
+
+message DiagnoseWorkflowExecutionResponse {
+  string domain = 1;
+  WorkflowExecution diagnostic_workflow_execution = 2;
+}
 
 message StartWorkflowExecutionRequest {
   string domain = 1;
@@ -109,9 +140,21 @@ message StartWorkflowExecutionRequest {
   Header header = 15;
   google.protobuf.Duration delay_start = 16;
   google.protobuf.Duration jitter_start = 17;
+  google.protobuf.Timestamp first_run_at = 18;
 }
 
 message StartWorkflowExecutionResponse {
+  string run_id = 1;
+}
+
+message StartWorkflowExecutionAsyncRequest {
+  StartWorkflowExecutionRequest request = 1;
+}
+
+message StartWorkflowExecutionAsyncResponse {
+}
+
+message RestartWorkflowExecutionResponse {
   string run_id = 1;
 }
 
@@ -139,6 +182,13 @@ message SignalWithStartWorkflowExecutionResponse {
   string run_id = 1;
 }
 
+message SignalWithStartWorkflowExecutionAsyncRequest {
+  SignalWithStartWorkflowExecutionRequest request = 1;
+}
+
+message SignalWithStartWorkflowExecutionAsyncResponse {
+}
+
 message ResetWorkflowExecutionRequest {
   string domain = 1;
   WorkflowExecution workflow_execution = 2;
@@ -157,6 +207,8 @@ message RequestCancelWorkflowExecutionRequest {
   WorkflowExecution workflow_execution = 2;
   string identity = 3;
   string request_id = 4;
+  string cause = 5;
+  string first_execution_run_id = 6;
 }
 
 message RequestCancelWorkflowExecutionResponse {
@@ -168,6 +220,7 @@ message TerminateWorkflowExecutionRequest {
   string reason = 3;
   Payload details = 4;
   string identity = 5;
+  string first_execution_run_id = 6;
 }
 
 message TerminateWorkflowExecutionResponse {
@@ -265,4 +318,3 @@ message RefreshWorkflowTasksRequest {
 
 message RefreshWorkflowTasksResponse {
 }
-

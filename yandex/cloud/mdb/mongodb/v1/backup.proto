@@ -20,7 +20,7 @@ message Backup {
       MANUAL = 2;
   }
 
-  // ID of the backup.
+  // ID of the backup. Required.
   string id = 1;
 
   // ID of the folder that the backup belongs to.
@@ -44,4 +44,7 @@ message Backup {
 
   // How this backup was created (manual/automatic/etc...)
   BackupType type = 8;
+
+  // Size of the journal associated with backup, in bytes
+  int64 journal_size = 9;
 }

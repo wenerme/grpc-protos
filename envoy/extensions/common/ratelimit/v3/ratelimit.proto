@@ -34,6 +34,17 @@ enum XRateLimitHeadersRFCVersion {
   DRAFT_VERSION_03 = 1;
 }
 
+enum VhRateLimitsOptions {
+  // Use the virtual host rate limits unless the route has a rate limit policy.
+  OVERRIDE = 0;
+
+  // Use the virtual host rate limits even if the route has a rate limit policy.
+  INCLUDE = 1;
+
+  // Ignore the virtual host rate limits even if the route does not have a rate limit policy.
+  IGNORE = 2;
+}
+
 // A RateLimitDescriptor is a list of hierarchical entries that are used by the service to
 // determine the final rate limit key and overall allowed limit. Here are some examples of how
 // they might be used for the domain "envoy".
@@ -118,4 +129,16 @@ message LocalRateLimitDescriptor {
 
   // Token Bucket algorithm for local ratelimiting.
   type.v3.TokenBucket token_bucket = 2 [(validate.rules).message = {required: true}];
+}
+
+// Configuration used to enable local cluster level rate limiting where the token buckets
+// will be shared across all the Envoy instances in the local cluster.
+// A share will be calculated based on the membership of the local cluster dynamically
+// and the configuration. When the limiter refilling the token bucket, the share will be
+// applied. By default, the token bucket will be shared evenly.
+//
+// See :ref:`local cluster name
+// <envoy_v3_api_field_config.bootstrap.v3.ClusterManager.local_cluster_name>` for more context
+// about local cluster.
+message LocalClusterRateLimit {
 }

@@ -8,9 +8,31 @@ import "etcd/api/versionpb/version.proto";
 
 // for grpc-gateway
 import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "go.etcd.io/etcd/api/v3/etcdserverpb";
 
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  security_definitions: {
+    security: {
+      key: "ApiKey";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization";
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "ApiKey";
+      value: {};
+    }
+  }
+};
 
 service KV {
   // Range gets the keys in the range from the key-value store.
@@ -218,7 +240,7 @@ service Maintenance {
   // It only iterates "key" bucket in backend storage.
   rpc HashKV(HashKVRequest) returns (HashKVResponse) {
       option (google.api.http) = {
-        post: "/v3/maintenance/hash"
+        post: "/v3/maintenance/hashkv"
         body: "*"
     };
   }
@@ -695,6 +717,8 @@ message HashKVResponse {
   uint32 hash = 2;
   // compact_revision is the compacted revision of key-value store when hash begins.
   int64 compact_revision = 3;
+  // hash_revision is the revision up to which the hash is calculated.
+  int64 hash_revision = 4 [(versionpb.etcd_version_field)="3.6"];
 }
 
 message HashResponse {
@@ -812,7 +836,8 @@ message WatchResponse {
   // All events sent to the created watcher will attach with the same watch_id.
   bool created = 3;
 
-  // canceled is set to true if the response is for a cancel watch request.
+  // canceled is set to true if the response is for a cancel watch request
+  // or if the start_revision has already been compacted.
   // No further events will be sent to the canceled watcher.
   bool canceled = 4;
 
@@ -1161,6 +1186,8 @@ message StatusResponse {
   bool isLearner = 10 [(versionpb.etcd_version_field)="3.4"];
   // storageVersion is the version of the db file. It might be get updated with delay in relationship to the target cluster version.
   string storageVersion = 11 [(versionpb.etcd_version_field)="3.6"];
+  // dbSizeQuota is the configured etcd storage quota in bytes (the value passed to etcd instance by flag --quota-backend-bytes)
+  int64 dbSizeQuota = 12 [(versionpb.etcd_version_field)="3.6"];
 }
 
 message AuthEnableRequest {

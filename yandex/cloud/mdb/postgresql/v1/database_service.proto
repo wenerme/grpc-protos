@@ -4,6 +4,7 @@ package yandex.cloud.mdb.postgresql.v1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/wrappers.proto";
 import "yandex/cloud/api/operation.proto";
 import "yandex/cloud/validation.proto";
 import "yandex/cloud/operation/operation.proto";
@@ -116,6 +117,9 @@ message UpdateDatabaseRequest {
   // To get the name of the database use a [DatabaseService.List] request.
   string database_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_-]*"];
 
+  // Optional. New name of the database.
+  string new_database_name = 5 [(required) = false, (length) = "<=63", (pattern) = "[a-zA-Z0-9_-]*"];
+
   // Field mask that specifies which fields of the Database resource should be updated.
   google.protobuf.FieldMask update_mask = 3;
 
@@ -123,7 +127,12 @@ message UpdateDatabaseRequest {
   //
   // If the field is sent, the list of enabled extensions is rewritten entirely.
   // Therefore, to disable an active extension you should simply send the list omitting this extension.
-  repeated Extension extensions = 4;
+  repeated Extension extensions = 4;  
+  
+  // Deletion Protection inhibits deletion of the database
+  //
+  // Default value: `unspecified` (inherits cluster's deletion_protection)
+  google.protobuf.BoolValue deletion_protection = 6;
 }
 
 message UpdateDatabaseMetadata {

@@ -4,6 +4,7 @@ package yandex.cloud.compute.v1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/field_mask.proto";
+import "yandex/cloud/access/access.proto";
 import "yandex/cloud/api/operation.proto";
 import "yandex/cloud/compute/v1/filesystem.proto";
 import "yandex/cloud/operation/operation.proto";
@@ -62,6 +63,31 @@ service FilesystemService {
   rpc ListOperations (ListFilesystemOperationsRequest) returns (ListFilesystemOperationsResponse) {
     option (google.api.http) = { get: "/compute/v1/filesystems/{filesystem_id}/operations" };
   }
+
+  // access
+
+  // Lists access bindings for the filesystem.
+  rpc ListAccessBindings (access.ListAccessBindingsRequest) returns (access.ListAccessBindingsResponse) {
+    option (google.api.http) = { get: "/compute/v1/filesystems/{resource_id}:listAccessBindings" };
+  }
+
+  // Sets access bindings for the filesystem.
+  rpc SetAccessBindings (access.SetAccessBindingsRequest) returns (operation.Operation) {
+    option (google.api.http) = { post: "/compute/v1/filesystems/{resource_id}:setAccessBindings" body: "*" };
+    option (yandex.cloud.api.operation) = {
+      metadata: "access.SetAccessBindingsMetadata"
+      response: "access.AccessBindingsOperationResult"
+    };
+  }
+
+  // Updates access bindings for the filesystem.
+  rpc UpdateAccessBindings (access.UpdateAccessBindingsRequest) returns (operation.Operation) {
+    option (google.api.http) = { post: "/compute/v1/filesystems/{resource_id}:updateAccessBindings" body: "*" };
+    option (yandex.cloud.api.operation) = {
+      metadata: "access.UpdateAccessBindingsMetadata"
+      response: "access.AccessBindingsOperationResult"
+    };
+  }
 }
 
 message GetFilesystemRequest {
@@ -87,14 +113,20 @@ message ListFilesystemsRequest {
   // [ListFilesystemsResponse.next_page_token] returned by a previous list request.
   string page_token = 3 [(length) = "<=100"];
 
-  // A filter expression that filters filesystems listed in the response.
+  // A filter expression that filters resources listed in the response.
+  // The expression consists of one or more conditions united by `AND` operator: `<condition1> [AND <condition2> [<...> AND <conditionN>]]`.
   //
-  // The expression must specify:
-  // 1. The field name. Currently you can use filtering only on the [Filesystem.name] field.
-  // 2. An `=` operator.
-  // 3. The value in double quotes (`"`). Must be 3-63 characters long and match the regular expression `[a-z]([-a-z0-9]{,61}[a-z0-9])?`.
-  // Example of a filter: `name=my-filesystem`.
-  string filter = 4;
+  // Each condition has the form `<field> <operator> <value>`, where:
+  // 1. `<field>` is the field name. Currently you can use filtering only on the limited number of fields.
+  // 2. `<operator>` is a logical operator, one of `=`, `!=`, `IN`, `NOT IN`.
+  // 3. `<value>` represents a value.
+  // String values should be written in double (`"`) or single (`'`) quotes. C-style escape sequences are supported (`\"` turns to `"`, `\'` to `'`, `\\` to backslash).
+  string filter = 4 [(length) = "<=1000"];
+
+  // By which column the listing should be ordered and in which direction,
+  // format is "createdAt desc". "id asc" if omitted.
+  // The default sorting order is ascending
+  string order_by = 5 [(length) = "<=100"];
 }
 
 message ListFilesystemsResponse {

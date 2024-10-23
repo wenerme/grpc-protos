@@ -110,3 +110,28 @@ message RetryPolicy {
   // Expiration time for the whole retry process.
   google.protobuf.Duration expiration_interval = 6;
 }
+
+enum IsolationGroupState {
+  ISOLATION_GROUP_STATE_INVALID = 0;
+  ISOLATION_GROUP_STATE_HEALTHY = 1;
+  ISOLATION_GROUP_STATE_DRAINED = 2;
+}
+
+message IsolationGroupPartition {
+  string name = 1;
+  IsolationGroupState state = 2;
+}
+
+message IsolationGroupConfiguration {
+    repeated IsolationGroupPartition isolation_groups = 1;
+}
+
+message AsyncWorkflowConfiguration {
+  bool enabled = 1;
+  // predefined_queue_name is the name of the predefined queue in cadence server config's asyncWorkflowQueues
+  string predefined_queue_name = 2;
+  // queue_type is the type of the queue if predefined_queue_name is not used
+  string queue_type = 3;
+  // queue_config is the configuration for the queue if predefined_queue_name is not used
+  DataBlob queue_config = 4;
+}

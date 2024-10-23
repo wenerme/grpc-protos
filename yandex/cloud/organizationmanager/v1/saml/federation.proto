@@ -10,7 +10,7 @@ option go_package = "github.com/yandex-cloud/go-genproto/yandex/cloud/organizati
 option java_package = "yandex.cloud.api.organizationmanager.v1.saml";
 
 // A federation.
-// For more information, see [SAML-compatible identity federations](/docs/iam/concepts/users/identity-federations).
+// For more information, see [SAML-compatible identity federations](/docs/iam/concepts/federations).
 message Federation {
 
   // ID of the federation.
@@ -83,4 +83,7 @@ enum BindingType {
 message FederationSecuritySettings {
   // Enable encrypted assertions.
   bool encrypted_assertions = 1;
+
+  // Value parameter ForceAuthn in SAMLRequest.
+  bool force_authn = 2;
 }

@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,17 +17,18 @@ syntax = "proto3";
 package google.cloud.securitycenter.v1;
 
 option csharp_namespace = "Google.Cloud.SecurityCenter.V1";
-option go_package = "google.golang.org/genproto/googleapis/cloud/securitycenter/v1;securitycenter";
+option go_package = "cloud.google.com/go/securitycenter/apiv1/securitycenterpb;securitycenterpb";
 option java_multiple_files = true;
 option java_outer_classname = "IndicatorProto";
 option java_package = "com.google.cloud.securitycenter.v1";
 option php_namespace = "Google\\Cloud\\SecurityCenter\\V1";
 option ruby_package = "Google::Cloud::SecurityCenter::V1";
 
-// Represents what's commonly known as an Indicator of compromise (IoC) in
+// Represents what's commonly known as an _indicator of compromise_ (IoC) in
 // computer forensics. This is an artifact observed on a network or in an
 // operating system that, with high confidence, indicates a computer intrusion.
-// Reference: https://en.wikipedia.org/wiki/Indicator_of_compromise
+// For more information, see [Indicator of
+// compromise](https://en.wikipedia.org/wiki/Indicator_of_compromise).
 message Indicator {
   // Indicates what signature matched this process.
   message ProcessSignature {
@@ -58,6 +59,18 @@ message Indicator {
       string yara_rule = 5;
     }
 
+    // Possible resource types to be associated with a signature.
+    enum SignatureType {
+      // The default signature type.
+      SIGNATURE_TYPE_UNSPECIFIED = 0;
+
+      // Used for signatures concerning processes.
+      SIGNATURE_TYPE_PROCESS = 1;
+
+      // Used for signatures concerning disks.
+      SIGNATURE_TYPE_FILE = 2;
+    }
+
     oneof signature {
       // Signature indicating that a binary family was matched.
       MemoryHashSignature memory_hash_signature = 6;
@@ -65,9 +78,12 @@ message Indicator {
       // Signature indicating that a YARA rule was matched.
       YaraRuleSignature yara_rule_signature = 7;
     }
+
+    // Describes the type of resource associated with the signature.
+    SignatureType signature_type = 8;
   }
 
-  // List of ip addresses associated to the Finding.
+  // The list of IP addresses that are associated with the finding.
   repeated string ip_addresses = 1;
 
   // List of domains associated to the Finding.
@@ -76,4 +92,7 @@ message Indicator {
   // The list of matched signatures indicating that the given
   // process is present in the environment.
   repeated ProcessSignature signatures = 3;
+
+  // The list of URIs associated to the Findings.
+  repeated string uris = 4;
 }

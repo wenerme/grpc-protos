@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package google.chat.logging.v1;
 
 import "google/rpc/status.proto";
 
-option go_package = "google.golang.org/genproto/googleapis/chat/logging/v1;logging";
+option go_package = "cloud.google.com/go/chat/logging/apiv1/loggingpb;loggingpb";
 option java_multiple_files = true;
 option java_outer_classname = "ChatAppLogEntryProto";
 option java_package = "com.google.chat.logging.v1";

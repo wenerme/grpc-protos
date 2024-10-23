@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package google.appengine.v1;
 
 import "google/api/annotations.proto";
 import "google/api/client.proto";
-import "google/api/resource.proto";
 import "google/appengine/v1/application.proto";
 import "google/appengine/v1/certificate.proto";
 import "google/appengine/v1/domain.proto";
@@ -32,7 +31,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 
 option csharp_namespace = "Google.Cloud.AppEngine.V1";
-option go_package = "google.golang.org/genproto/googleapis/appengine/v1;appengine";
+option go_package = "cloud.google.com/go/appengine/apiv1/appenginepb;appenginepb";
 option java_multiple_files = true;
 option java_outer_classname = "AppengineProto";
 option java_package = "com.google.appengine.v1";

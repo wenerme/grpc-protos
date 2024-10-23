@@ -3,6 +3,7 @@ syntax = "proto3";
 package yandex.cloud.mdb.mysql.v1;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 import "google/type/timeofday.proto";
 import "yandex/cloud/validation.proto";
 import "yandex/cloud/mdb/mysql/v1/config/mysql5_7.proto";
@@ -91,7 +92,7 @@ message Cluster {
   // Custom labels for the cluster as `key:value` pairs.
   map<string, string> labels = 6;
 
-  // Deployment environment of the cluster.
+  // Deployment environment of the MySQL cluster.
   Environment environment = 7;
 
   // Monitoring systems data that is relevant to the cluster.
@@ -145,10 +146,10 @@ message ClusterConfig {
 
   // Cluster-wide MySQL configuration.
   oneof mysql_config {
-  
+
     // Configuration of a MySQL 5.7 server.
     config.MysqlConfigSet5_7 mysql_config_5_7 = 2 [json_name="mysqlConfig_5_7"];
-  
+
     // Configuration of a MySQL 8.0 server.
     config.MysqlConfigSet8_0 mysql_config_8_0 = 6 [json_name="mysqlConfig_8_0"];
   }
@@ -164,13 +165,16 @@ message ClusterConfig {
 
   // Configuration of the performance diagnostics service.
   PerformanceDiagnostics performance_diagnostics = 7;
+
+  // Retention policy of automated backups.
+  google.protobuf.Int64Value backup_retain_period_days = 8 [(value) = "7-60"];
 }
 
 message Host {
 
   enum Role {
 
-    // Role of the host is unknown.
+    // Role of the host is unknown. Default value.
     ROLE_UNKNOWN = 0;
 
     // Host is the master.
@@ -182,7 +186,7 @@ message Host {
 
   enum Health {
 
-    // Health of the host is unknown.
+    // Health of the host is unknown. Default value.
     HEALTH_UNKNOWN = 0;
 
     // Host is performing all its functions normally.
@@ -193,6 +197,9 @@ message Host {
 
     // Host is degraded, and can perform only some of its essential functions.
     DEGRADED = 3;
+
+    // Host is alive, but in read-only mode.
+    READONLY = 4;
   }
 
   // Name of the host.
@@ -210,10 +217,10 @@ message Host {
   // Resources allocated to the host.
   Resources resources = 4;
 
-  // Role of the host in the cluster.
+  // Role of the host in the cluster. If the field has default value, it is not returned in the response.
   Role role = 5;
 
-  // Aggregated health of the host.
+  // Aggregated health of the host. If the field has default value, it is not returned in the response.
   Health health = 6;
 
   // List of services provided by the host.
@@ -239,6 +246,7 @@ message Host {
 message Service {
 
   enum Type {
+    // Service type of the host is unspecified. Default value.
     TYPE_UNSPECIFIED = 0;
 
     // The host is a MySQL server.
@@ -247,7 +255,7 @@ message Service {
 
   enum Health {
 
-    // Health of the service is unknown.
+    // Health of the service is unknown. Default value.
     HEALTH_UNKNOWN = 0;
 
     // The service is working normally.
@@ -255,12 +263,15 @@ message Service {
 
     // The service is dead or unresponsive.
     DEAD = 2;
+
+    // The service is in read-only mode.
+    READONLY = 3;
   }
 
-  // Type of the service provided by the host.
+  // Type of the service provided by the host. If the field has default value, it is not returned in the response.
   Type type = 1;
 
-  // Aggregated health of the service.
+  // Aggregated health of the service. If the field has default value, it is not returned in the response.
   Health health = 2;
 }
 

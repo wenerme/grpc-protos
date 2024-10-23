@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import "google/protobuf/timestamp.proto";
 import "google/rpc/error_details.proto";
 
 option csharp_namespace = "Google.Cloud.BigQuery.Migration.V2Alpha";
-option go_package = "google.golang.org/genproto/googleapis/cloud/bigquery/migration/v2alpha;migration";
+option go_package = "cloud.google.com/go/bigquery/migration/apiv2alpha/migrationpb;migrationpb";
 option java_multiple_files = true;
 option java_outer_classname = "MigrationEntitiesProto";
 option java_package = "com.google.cloud.bigquery.migration.v2alpha";

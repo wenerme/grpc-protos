@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import "google/protobuf/timestamp.proto";
 
 option cc_enable_arenas = true;
 option csharp_namespace = "Google.Cloud.ErrorReporting.V1Beta1";
-option go_package = "google.golang.org/genproto/googleapis/devtools/clouderrorreporting/v1beta1;clouderrorreporting";
+option go_package = "cloud.google.com/go/errorreporting/apiv1beta1/errorreportingpb;errorreportingpb";
 option java_multiple_files = true;
 option java_outer_classname = "ReportErrorsServiceProto";
 option java_package = "com.google.devtools.clouderrorreporting.v1beta1";
@@ -35,7 +35,8 @@ option ruby_package = "Google::Cloud::ErrorReporting::V1beta1";
 // An API for reporting error events.
 service ReportErrorsService {
   option (google.api.default_host) = "clouderrorreporting.googleapis.com";
-  option (google.api.oauth_scopes) = "https://www.googleapis.com/auth/cloud-platform";
+  option (google.api.oauth_scopes) =
+      "https://www.googleapis.com/auth/cloud-platform";
 
   // Report an individual error event and record the event to a log.
   //
@@ -47,14 +48,18 @@ service ReportErrorsService {
   // `POST
   // https://clouderrorreporting.googleapis.com/v1beta1/{projectName}/events:report?key=123ABC456`
   //
-  // **Note:** [Error Reporting](/error-reporting) is a global service built
-  // on Cloud Logging and doesn't analyze logs stored
-  // in regional log buckets or logs routed to other Google Cloud projects.
+  // **Note:** [Error Reporting] (https://cloud.google.com/error-reporting)
+  // is a service built on Cloud Logging and can analyze log entries when all of
+  // the following are true:
   //
-  // For more information, see
-  // [Using Error Reporting with regionalized
-  // logs](/error-reporting/docs/regionalization).
-  rpc ReportErrorEvent(ReportErrorEventRequest) returns (ReportErrorEventResponse) {
+  // * Customer-managed encryption keys (CMEK) are disabled on the log bucket.
+  // * The log bucket satisfies one of the following:
+  //     * The log bucket is stored in the same project where the logs
+  //     originated.
+  //     * The logs were routed to a project, and then that project stored those
+  //     logs in a log bucket that it owns.
+  rpc ReportErrorEvent(ReportErrorEventRequest)
+      returns (ReportErrorEventResponse) {
     option (google.api.http) = {
       post: "/v1beta1/{project_name=projects/*}/events:report"
       body: "event"
@@ -84,16 +89,19 @@ message ReportErrorEventRequest {
 
 // Response for reporting an individual error event.
 // Data may be added to this message in the future.
-message ReportErrorEventResponse {
-
-}
+message ReportErrorEventResponse {}
 
 // An error event which is reported to the Error Reporting system.
 message ReportedErrorEvent {
   // Optional. Time when the event occurred.
   // If not provided, the time when the event was received by the
-  // Error Reporting system will be used.
-  google.protobuf.Timestamp event_time = 1 [(google.api.field_behavior) = OPTIONAL];
+  // Error Reporting system is used. If provided, the time must not
+  // exceed the [logs retention
+  // period](https://cloud.google.com/logging/quotas#logs_retention_periods) in
+  // the past, or be more than 24 hours in the future.
+  // If an invalid time is provided, then an error is returned.
+  google.protobuf.Timestamp event_time = 1
+      [(google.api.field_behavior) = OPTIONAL];
 
   // Required. The service context in which this error has occurred.
   ServiceContext service_context = 2 [(google.api.field_behavior) = REQUIRED];
@@ -117,9 +125,9 @@ message ReportedErrorEvent {
   // [`Exception.backtrace`](https://ruby-doc.org/core-2.2.0/Exception.html#method-i-backtrace).
   // * **C#**: Must be the return value of
   // [`Exception.ToString()`](https://msdn.microsoft.com/en-us/library/system.exception.tostring.aspx).
-  // * **PHP**: Must start with `PHP (Notice|Parse error|Fatal error|Warning)`
-  // and contain the result of
-  // [`(string)$exception`](http://php.net/manual/en/exception.tostring.php).
+  // * **PHP**: Must be prefixed with `"PHP (Notice|Parse error|Fatal
+  // error|Warning): "` and contain the result of
+  // [`(string)$exception`](https://php.net/manual/en/exception.tostring.php).
   // * **Go**: Must be the return value of
   // [`runtime.Stack()`](https://golang.org/pkg/runtime/debug/#Stack).
   string message = 3 [(google.api.field_behavior) = REQUIRED];

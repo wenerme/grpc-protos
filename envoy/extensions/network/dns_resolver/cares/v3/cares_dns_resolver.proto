@@ -5,8 +5,9 @@ package envoy.extensions.network.dns_resolver.cares.v3;
 import "envoy/config/core/v3/address.proto";
 import "envoy/config/core/v3/resolver.proto";
 
+import "google/protobuf/wrappers.proto";
+
 import "udpa/annotations/status.proto";
-import "validate/validate.proto";
 
 option java_package = "io.envoyproxy.envoy.extensions.network.dns_resolver.cares.v3";
 option java_outer_classname = "CaresDnsResolverProto";
@@ -18,12 +19,13 @@ option (udpa.annotations.file_status).package_version_status = ACTIVE;
 // [#extension: envoy.network.dns_resolver.cares]
 
 // Configuration for c-ares DNS resolver.
+// [#next-free-field: 6]
 message CaresDnsResolverConfig {
   // A list of dns resolver addresses.
   // :ref:`use_resolvers_as_fallback<envoy_v3_api_field_extensions.network.dns_resolver.cares.v3.CaresDnsResolverConfig.use_resolvers_as_fallback>`
   // below dictates if the DNS client should override system defaults or only use the provided
   // resolvers if the system defaults are not available, i.e., as a fallback.
-  repeated config.core.v3.Address resolvers = 1 [(validate.rules).repeated = {min_items: 1}];
+  repeated config.core.v3.Address resolvers = 1;
 
   // If true use the resolvers listed in the
   // :ref:`resolvers<envoy_v3_api_field_extensions.network.dns_resolver.cares.v3.CaresDnsResolverConfig.resolvers>`
@@ -41,4 +43,8 @@ message CaresDnsResolverConfig {
 
   // Configuration of DNS resolver option flags which control the behavior of the DNS resolver.
   config.core.v3.DnsResolverOptions dns_resolver_options = 2;
+
+  // This option allows for number of UDP based DNS queries to be capped. Note, this
+  // is only applicable to c-ares DNS resolver currently.
+  google.protobuf.UInt32Value udp_max_queries = 5;
 }

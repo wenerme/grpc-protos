@@ -7,7 +7,7 @@ import "google/protobuf/timestamp.proto";
 option go_package = "github.com/yandex-cloud/go-genproto/yandex/cloud/certificatemanager/v1;certificatemanager";
 option java_package = "yandex.cloud.api.certificatemanager.v1";
 
-// A certificate. For details about the concept, see [documentation](docs/certificate-manager/concepts/).
+// A certificate. For details about the concept, see [documentation](/docs/certificate-manager/concepts/).
 message Certificate {
 
   enum Status {
@@ -86,6 +86,9 @@ message Certificate {
 
   // Flag that protects deletion of the certificate
   bool deletion_protection = 18;
+
+  // Mark imported certificates without uploaded chain or with chain which not lead to root certificate
+  bool incomplete_chain = 19;
 }
 
 // Supported certificate types.

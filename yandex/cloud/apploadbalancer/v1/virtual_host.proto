@@ -4,6 +4,7 @@ package yandex.cloud.apploadbalancer.v1;
 
 import "google/protobuf/duration.proto";
 import "yandex/cloud/apploadbalancer/v1/payload.proto";
+import "yandex/cloud/apploadbalancer/v1/rate_limit.proto";
 import "yandex/cloud/validation.proto";
 
 option go_package = "github.com/yandex-cloud/go-genproto/yandex/cloud/apploadbalancer/v1;apploadbalancer";
@@ -46,6 +47,9 @@ message VirtualHost {
   repeated HeaderModification modify_response_headers = 5;
 
   RouteOptions route_options = 6;
+
+  // RateLimit is a rate limit configuration applied for a whole virtual host.
+  RateLimit rate_limit = 7;
 }
 
 message RouteOptions {
@@ -54,6 +58,65 @@ message RouteOptions {
 
   // Apply the following modifications to the response headers.
   repeated HeaderModification modify_response_headers = 2;
+
+  RBAC rbac = 3;
+
+  // Security profile that will take effect to all requests routed via particular virtual host.
+  string security_profile_id = 4;
+}
+
+// Role Based Access Control (RBAC) provides router, virtual host, and route access control for the ALB
+// service. Requests are allowed or denied based on the `action` and whether a matching principal is
+// found. For instance, if the action is ALLOW and a matching principal is found the request should be
+// allowed.
+message RBAC {
+  enum Action {
+    ACTION_UNSPECIFIED = 0;
+
+    // Allows the request if and only if there is a principal that matches the request.
+    ALLOW = 1;
+
+    // Allows the request if and only if there are no principal that match the request.
+    DENY = 2;
+  }
+
+  // The action to take if a principal matches. Every action either allows or denies a request.
+  Action action = 1 [(required) = true];
+
+  // Required. A match occurs when at least one matches the request.
+  repeated Principals principals = 2 [(size) = ">=1"];
+}
+
+// Principals define a group of identities for a request.
+message Principals {
+  // Required. A match occurs when all principals match the request.
+  repeated Principal and_principals = 1 [(size) = ">=1"];
+}
+
+// Principal defines an identity for a request.
+message Principal {
+  oneof identifier {
+    option (exactly_one) = true;
+
+    // A header (or pseudo-header such as :path or :method) of the incoming HTTP request.
+    HeaderMatcher header = 1;
+
+    // A CIDR block or IP that describes the request remote/origin address, e.g. ``192.0.0.0/24`` or``192.0.0.4`` .
+    string remote_ip = 2;
+
+    // When any is set, it matches any request.
+    bool any = 3;
+  }
+
+  message HeaderMatcher {
+    // Specifies the name of the header in the request.
+    string name = 1 [(required) = true];
+
+    // Specifies how the header match will be performed to route the request.
+    // In the absence of value a request that has specified header name will match,
+    // regardless of the header's value.
+    StringMatch value = 2;
+  }
 }
 
 // A header modification resource.
@@ -171,6 +234,9 @@ message StringMatch {
 
     // Prefix match string.
     string prefix_match = 2;
+
+    // Regular expression match string.
+    string regex_match = 3;
   }
 }
 
@@ -317,7 +383,7 @@ message HttpRouteAction {
 
   // Replacement for the path prefix matched by [StringMatch].
   //
-  // For instance, if [StringMatch.prefix_match] value is `/foo` and `replace_prefix` value is `/bar`,
+  // For instance, if [StringMatch.prefix_match] value is `/foo` and `prefix_rewrite` value is `/bar`,
   // a request with `/foobaz` path is forwarded with `/barbaz` path.
   // For [StringMatch.exact_match], the whole path is replaced.
   //
@@ -326,6 +392,9 @@ message HttpRouteAction {
 
   // Supported values for HTTP `Upgrade` header. E.g. `websocket`.
   repeated string upgrade_types = 7;
+
+  // RateLimit is a rate limit configuration applied for route.
+  RateLimit rate_limit = 8;
 }
 
 // A gRPC route action resource.
@@ -365,4 +434,7 @@ message GrpcRouteAction {
     // Automatically replaces the host with that of the target.
     bool auto_host_rewrite = 5;
   }
+
+  // RateLimit is a rate limit configuration applied for route.
+  RateLimit rate_limit = 6;
 }

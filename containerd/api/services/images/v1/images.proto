@@ -89,6 +89,8 @@ message GetImageResponse {
 
 message CreateImageRequest {
 	Image image = 1;
+
+	google.protobuf.Timestamp source_date_epoch = 2;
 }
 
 message CreateImageResponse {
@@ -104,6 +106,8 @@ message UpdateImageRequest {
 	// UpdateMask specifies which fields to perform the update on. If empty,
 	// the operation applies to all fields.
 	google.protobuf.FieldMask update_mask = 2;
+
+	google.protobuf.Timestamp source_date_epoch = 3;
 }
 
 message UpdateImageResponse {
@@ -118,7 +122,7 @@ message ListImagesRequest {
 	// filters. Expanded, images that match the following will be
 	// returned:
 	//
-	//   filters[0] or filters[1] or ... or filters[n-1] or filters[n]
+	//	filters[0] or filters[1] or ... or filters[n-1] or filters[n]
 	//
 	// If filters is zero-length or nil, all items will be returned.
 	repeated string filters = 1;
@@ -136,4 +140,10 @@ message DeleteImageRequest {
 	//
 	// Default is false
 	bool sync = 2;
+
+	// Target value for image to be deleted
+	//
+	// If image descriptor does not match the same digest,
+	// the delete operation will return "not found" error.
+	optional containerd.types.Descriptor target = 3;
 }

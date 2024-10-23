@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package google.cloud.bigquery.v2;
 
 import "google/api/field_behavior.proto";
 
-option go_package = "google.golang.org/genproto/googleapis/cloud/bigquery/v2;bigquery";
+option go_package = "cloud.google.com/go/bigquery/apiv2/bigquerypb;bigquerypb";
 option java_outer_classname = "TableReferenceProto";
 option java_package = "com.google.cloud.bigquery.v2";
 
@@ -29,22 +29,12 @@ message TableReference {
   // Required. The ID of the dataset containing this table.
   string dataset_id = 2 [(google.api.field_behavior) = REQUIRED];
 
-  // Required. The ID of the table. The ID must contain only
-  // letters (a-z, A-Z), numbers (0-9), or underscores (_). The maximum
-  // length is 1,024 characters.  Certain operations allow
-  // suffixing of the table ID with a partition decorator, such as
+  // Required. The ID of the table. The ID can contain Unicode characters in
+  // category L (letter), M (mark), N (number), Pc (connector, including
+  // underscore), Pd (dash), and Zs (space). For more information, see [General
+  // Category](https://wikipedia.org/wiki/Unicode_character_property#General_Category).
+  // The maximum length is 1,024 characters.  Certain operations allow suffixing
+  // of the table ID with a partition decorator, such as
   // `sample_table$20190123`.
   string table_id = 3 [(google.api.field_behavior) = REQUIRED];
-
-  // The alternative field that will be used when ESF is not able to translate
-  // the received data to the project_id field.
-  repeated string project_id_alternative = 4;
-
-  // The alternative field that will be used when ESF is not able to translate
-  // the received data to the project_id field.
-  repeated string dataset_id_alternative = 5;
-
-  // The alternative field that will be used when ESF is not able to translate
-  // the received data to the project_id field.
-  repeated string table_id_alternative = 6;
 }

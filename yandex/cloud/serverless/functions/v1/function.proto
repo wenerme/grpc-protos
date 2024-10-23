@@ -4,14 +4,16 @@ package yandex.cloud.serverless.functions.v1;
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+import "yandex/cloud/logging/v1/log_entry.proto";
 import "yandex/cloud/validation.proto";
 
 option go_package = "github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/functions/v1;functions";
 option java_package = "yandex.cloud.api.serverless.functions.v1";
 
-
 // A serverless function. For details about the concept, see [Functions](/docs/functions/concepts/function).
 message Function {
+  reserved 7;
+
   enum Status {
     STATUS_UNSPECIFIED = 0;
 
@@ -46,9 +48,6 @@ message Function {
   // Function labels as `key:value` pairs.
   map<string, string> labels = 6 [(size) = "<=64"];
 
-  // ID of the log group for the function.
-  string log_group_id = 7;
-
   // URL that needs to be requested to invoke the function.
   string http_invoke_url = 8;
 
@@ -58,6 +57,8 @@ message Function {
 
 // Version of a function. For details about the concept, see [Function versions](/docs/functions/concepts/function#version).
 message Version {
+  reserved 4, 11, 15;
+
   enum Status {
     STATUS_UNSPECIFIED = 0;
 
@@ -66,6 +67,12 @@ message Version {
 
     // Version is ready to use.
     ACTIVE = 2;
+
+    // Version will be deleted soon.
+    OBSOLETE = 3;
+
+    // Version is being deleted.
+    DELETING = 4;
   }
 
   // ID of the version.
@@ -110,9 +117,6 @@ message Version {
   // Version tags. For details, see [Version tag](/docs/functions/concepts/function#tag).
   repeated string tags = 14;
 
-  // ID of the log group for the version.
-  string log_group_id = 15;
-
   // Environment settings for the version.
   map<string, string> environment = 16;
 
@@ -122,14 +126,32 @@ message Version {
   // Additional service accounts to be used by the version.
   map<string, string> named_service_accounts = 18;
 
-  // Lockbox secrets to be used by the version
+  // Yandex Lockbox secrets to be used by the version.
   repeated Secret secrets = 19;
+
+  // Options for logging from the function
+  LogOptions log_options = 20;
+
+  // S3 mounts to be used by the version.
+  repeated StorageMount storage_mounts = 21;
+
+  // Config for asynchronous invocations of the version
+  AsyncInvocationConfig async_invocation_config = 22;
+
+  // Optional size of in-memory mounted /tmp directory in bytes.
+  int64 tmpfs_size = 23;
+
+  // The maximum number of requests processed by a function instance at the same time
+  int64 concurrency = 24 [(value) = "0-16"];
+
+  // Mounts to be used by the version.
+  repeated Mount mounts = 25;
 }
 
 // Resources allocated to a version.
 message Resources {
-  // Amount of memory available to the version, specified in bytes.
-  int64 memory = 1 [(value) = "134217728-4294967296"];
+  // Amount of memory available to the version, specified in bytes, multiple of 128MB.
+  int64 memory = 1 [(value) = "134217728-8589934592"];
 }
 
 // Version deployment package.
@@ -146,17 +168,20 @@ message Package {
 
 // Version connectivity specification.
 message Connectivity {
-
   // Network the version will have access to.
   // It's essential to specify network with subnets in all availability zones.
   string network_id = 1;
 
   // Complete list of subnets (from the same network) the version can be attached to.
   // It's essential to specify at least one subnet for each availability zones.
-  repeated string subnet_id = 2;
+  repeated string subnet_id = 2 [
+    (length) = ">0",
+    (unique) = true
+  ];
 }
 
 message ScalingPolicy {
+  reserved 5;
 
   // ID of the function that the scaling policy belongs to.
   string function_id = 1;
@@ -183,20 +208,155 @@ message ScalingPolicy {
   int64 zone_requests_limit = 8;
 }
 
-// Secret for serverless function
+// Secret for serverless function.
 message Secret {
-
-  // ID of lockbox secret
+  // ID of Yandex Lockbox secret.
   string id = 1;
 
-  // ID of secret version
+  // ID of Yandex Lockbox version.
   string version_id = 2;
 
-  // Key in secret's payload, which value to be delivered into function environment
+  // Key in secret's payload, which value to be delivered into function environment.
   string key = 3;
 
   oneof reference {
-    // environment variable in which secret's value to be delivered
+    // environment variable in which secret's value to be delivered.
     string environment_variable = 4;
   }
 }
+
+message LogOptions {
+  // Is logging from function disabled.
+  bool disabled = 1;
+
+  // Log entries destination.
+  oneof destination {
+    // Entry should be written to log group resolved by ID.
+    string log_group_id = 2 [(pattern) = "([a-zA-Z][-a-zA-Z0-9_.]{0,63})?"];
+
+    // Entry should be written to default log group for specified folder.
+    string folder_id = 3 [(pattern) = "([a-zA-Z][-a-zA-Z0-9_.]{0,63})?"];
+  }
+
+  // Minimum log entry level.
+  //
+  // See [LogLevel.Level] for details.
+  yandex.cloud.logging.v1.LogLevel.Level min_level = 4;
+}
+
+message StorageMount {
+  // Use function.proto:Mount.ObjectStorage instead
+  option deprecated = true;
+
+  // S3 bucket name for mounting.
+  string bucket_id = 1 [
+    (required) = true,
+    (length) = "3-63",
+    (pattern) = "[-.0-9a-zA-Z]*"
+  ];
+
+  // S3 bucket prefix for mounting.
+  string prefix = 2;
+
+  // Mount point directory name (not path) for mounting.
+  string mount_point_name = 3 [
+    (required) = true,
+    (length) = "1-100",
+    (pattern) = "[-_0-9a-zA-Z]*"
+  ];
+
+  // Is mount read only.
+  bool read_only = 4;
+}
+
+// Mount contains an information about version's external storage mount
+message Mount {
+  reserved 2;
+  reserved 4 to 9;
+  enum Mode {
+    MODE_UNSPECIFIED = 0;
+    READ_ONLY = 1;
+    READ_WRITE = 2;
+  }
+
+  // Unique mount point name. Device will be mounted into /function/storage/<name>
+  string name = 1 [
+    (required) = true,
+    (length) = "1-100",
+    (pattern) = "[-_0-9a-zA-Z]*"
+  ];
+
+  // Mount's mode
+  Mode mode = 3;
+
+  // Target mount option
+  oneof target {
+    option (exactly_one) = true;
+
+    // Object storage mounts
+    ObjectStorage object_storage = 10;
+
+    // Working disk (worker-local non-shared read-write NBS disk templates)
+    DiskSpec ephemeral_disk_spec = 11;
+  }
+
+  // ObjectStorage as a mount
+  message ObjectStorage {
+    // ObjectStorage bucket name for mounting.
+    string bucket_id = 1 [
+      (required) = true,
+      (length) = "3-63",
+      (pattern) = "[-.0-9a-zA-Z]*"
+    ];
+
+    // ObjectStorage bucket prefix for mounting.
+    string prefix = 2;
+  }
+
+  // Disk as a mount
+  message DiskSpec {
+    // The size of disk for mount in bytes
+    int64 size = 1 [(value) = ">0"];
+
+    // Optional block size of disk for mount in bytes
+    int64 block_size = 2;
+  }
+}
+
+message AsyncInvocationConfig {
+  // Target to which a result of an invocation will be sent
+  message ResponseTarget {
+    oneof target {
+      option (exactly_one) = true;
+      // Target to ignore a result
+      EmptyTarget empty_target = 1;
+      // Target to send a result to ymq
+      YMQTarget ymq_target = 2;
+    }
+  }
+
+  // Number of retries of version invocation
+  int64 retries_count = 1 [(value) = "0-100"];
+
+  // Target for successful result of the version's invocation
+  ResponseTarget success_target = 2 [(required) = true];
+
+  // Target for unsuccessful result, if all retries failed
+  ResponseTarget failure_target = 3 [(required) = true];
+
+  // Service account which can invoke version
+  string service_account_id = 4;
+}
+
+message YMQTarget {
+  // Queue ARN
+  string queue_arn = 1 [(required) = true];
+
+  // Service account which has write permission on the queue.
+  string service_account_id = 2 [
+    (required) = true,
+    (length) = "<=50"
+  ];
+}
+
+message EmptyTarget {}

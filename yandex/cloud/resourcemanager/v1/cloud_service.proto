@@ -48,6 +48,7 @@ service CloudService {
 
   // Deletes the specified cloud.
   rpc Delete (DeleteCloudRequest) returns (operation.Operation) {
+    option (google.api.http) = { delete: "/resource-manager/v1/clouds/{cloud_id}" };
     option (yandex.cloud.api.operation) = {
       metadata: "DeleteCloudMetadata"
       response: "google.protobuf.Empty"
@@ -71,7 +72,7 @@ service CloudService {
     option (google.api.http) = { post: "/resource-manager/v1/clouds/{resource_id}:setAccessBindings" body: "*" };
     option (yandex.cloud.api.operation) = {
       metadata: "access.SetAccessBindingsMetadata"
-      response: "google.protobuf.Empty"
+      response: "access.AccessBindingsOperationResult"
     };
   }
 
@@ -80,7 +81,7 @@ service CloudService {
     option (google.api.http) = { post: "/resource-manager/v1/clouds/{resource_id}:updateAccessBindings" body: "*" };
     option (yandex.cloud.api.operation) = {
       metadata: "access.UpdateAccessBindingsMetadata"
-      response: "google.protobuf.Empty"
+      response: "access.AccessBindingsOperationResult"
     };
   }
 }
@@ -102,7 +103,7 @@ message ListCloudsRequest {
   // Page token. Set [page_token]
   // to the [ListCloudsResponse.next_page_token]
   // returned by a previous list request to get the next page of results.
-  string page_token = 2 [(length) = "<=1000"];
+  string page_token = 2 [(length) = "<=2000"];
 
   // A filter expression that filters resources listed in the response.
   // The expression must specify:
@@ -162,7 +163,7 @@ message ListCloudOperationsRequest {
   // Page token. Set [page_token]
   // to the [ListCloudOperationsResponse.next_page_token]
   // returned by a previous list request to get the next page of results.
-  string page_token = 3 [(length) = "<=100"];
+  string page_token = 3 [(length) = "<=2000"];
 }
 
 message ListCloudOperationsResponse {
@@ -218,4 +219,7 @@ message DeleteCloudMetadata {
   string cloud_id = 1;
   // The timestamp after which the process of deleting the cloud should begin.
   google.protobuf.Timestamp delete_after = 2;
+  // Information about operation cancellation
+  string cancelled_by = 3;
+  google.protobuf.Timestamp cancelled_at = 4;
 }

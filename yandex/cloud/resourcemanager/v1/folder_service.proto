@@ -72,7 +72,7 @@ service FolderService {
     option (google.api.http) = { post: "/resource-manager/v1/folders/{resource_id}:setAccessBindings" body: "*" };
     option (yandex.cloud.api.operation) = {
       metadata: "access.SetAccessBindingsMetadata"
-      response: "google.protobuf.Empty"
+      response: "access.AccessBindingsOperationResult"
     };
   }
 
@@ -81,7 +81,7 @@ service FolderService {
     option (google.api.http) = { post: "/resource-manager/v1/folders/{resource_id}:updateAccessBindings" body: "*" };
     option (yandex.cloud.api.operation) = {
       metadata: "access.UpdateAccessBindingsMetadata"
-      response: "google.protobuf.Empty"
+      response: "access.AccessBindingsOperationResult"
     };
   }
 }
@@ -107,7 +107,7 @@ message ListFoldersRequest {
   // Page token. Set [page_token]
   // to the [ListFoldersResponse.next_page_token]
   // returned by a previous list request to get the next page of results.
-  string page_token = 3 [(length) = "<=100"];
+  string page_token = 3 [(length) = "<=2000"];
 
   // A filter expression that filters resources listed in the response.
   // The expression must specify:
@@ -194,6 +194,9 @@ message DeleteFolderMetadata {
   string folder_id = 1;
   // The timestamp after which the process of deleting the folder should begin.
   google.protobuf.Timestamp delete_after = 2;
+  // Information about operation cancellation
+  string cancelled_by = 3;
+  google.protobuf.Timestamp cancelled_at = 4;
 }
 
 message ListFolderOperationsRequest {
@@ -209,7 +212,7 @@ message ListFolderOperationsRequest {
   // Page token. Set [page_token]
   // to the [ListFolderOperationsResponse.next_page_token]
   // returned by a previous list request to get the next page of results.
-  string page_token = 3 [(length) = "<=100"];
+  string page_token = 3 [(length) = "<=2000"];
 }
 
 message ListFolderOperationsResponse {

@@ -80,7 +80,7 @@ message GetUserRequest {
 
   // Name of the PostgreSQL User resource to return.
   // To get the name of the user, use a [UserService.List] request.
-  string user_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_]*"];
+  string user_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_-]*"];
 }
 
 message ListUsersRequest {
@@ -133,7 +133,7 @@ message UpdateUserRequest {
 
   // Name of the user to be updated.
   // To get the name of the user use a [UserService.List] request.
-  string user_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_]*"];
+  string user_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_-]*"];
 
   // Field mask that specifies which fields of the PostgreSQL User resource should be updated.
   google.protobuf.FieldMask update_mask = 3;
@@ -160,10 +160,19 @@ message UpdateUserRequest {
   // Default value: `true` (login is allowed).
   google.protobuf.BoolValue login = 8;
 
-  // Roles and privileges that are granted to the user (`GRANT <role> TO <user>`).
+  // A set of roles and privileges that are granted to the user.
   //
   // For more information, see [the documentation](/docs/managed-postgresql/operations/grant).
   repeated string grants = 9 [(length) = "<=63", (pattern) = "[a-zA-Z0-9_]*"];
+
+  // Deletion Protection inhibits deletion of the user
+  //
+  // Default value: `unspecified` (inherits cluster's deletion_protection)
+  google.protobuf.BoolValue deletion_protection = 10;
+
+  // New password-based authentication method for user.
+  // Possible values are `` USER_PASSWORD_ENCRYPTION_MD5 `` or `` USER_PASSWORD_ENCRYPTION_SCRAM_SHA_256 ``.
+  UserPasswordEncryption user_password_encryption = 11;
 }
 
 message UpdateUserMetadata {
@@ -181,7 +190,7 @@ message DeleteUserRequest {
 
   // Name of the user to delete.
   // To get the name of the user, use a [UserService.List] request.
-  string user_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_]*"];
+  string user_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_-]*"];
 }
 
 message DeleteUserMetadata {
@@ -199,7 +208,7 @@ message GrantUserPermissionRequest {
 
   // Name of the user to grant the permission to.
   // To get the name of the user, use a [UserService.List] request.
-  string user_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_]*"];
+  string user_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_-]*"];
 
   // Permission that should be granted to the specified user.
   Permission permission = 3 [(required) = true];
@@ -221,7 +230,7 @@ message RevokeUserPermissionRequest {
 
   // Name of the user to revoke a permission from.
   // To get the name of the user, use a [UserService.List] request.
-  string user_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_]*"];
+  string user_name = 2 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_-]*"];
 
   // Name of the database that the user should lose access to.
   string database_name = 3 [(required) = true, (length) = "<=63", (pattern) = "[a-zA-Z0-9_-]*"];

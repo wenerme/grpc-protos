@@ -5,9 +5,12 @@ package yandex.cloud.mdb.redis.v1;
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 import "google/type/timeofday.proto";
+import "yandex/cloud/validation.proto";
+import "yandex/cloud/mdb/redis/v1/config/redis.proto";
 import "yandex/cloud/mdb/redis/v1/config/redis5_0.proto";
 import "yandex/cloud/mdb/redis/v1/config/redis6_0.proto";
 import "yandex/cloud/mdb/redis/v1/config/redis6_2.proto";
+import "yandex/cloud/mdb/redis/v1/config/redis7_0.proto";
 import "yandex/cloud/mdb/redis/v1/maintenance.proto";
 
 option go_package = "github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/redis/v1;redis";
@@ -133,6 +136,9 @@ message Cluster {
 
   // Persistence mode
   PersistenceMode persistence_mode = 19;
+
+  // Enable FQDN instead of ip
+  bool announce_hostnames = 20;
 }
 
 message Monitoring {
@@ -158,6 +164,8 @@ message ClusterConfig {
     config.RedisConfigSet6_0 redis_config_6_0 = 6 [json_name="redisConfig_6_0"];
     // Configuration of a Redis 6.2 server.
     config.RedisConfigSet6_2 redis_config_6_2 = 7 [json_name="redisConfig_6_2"];
+    // Configuration of a Redis 7.0 server.
+    config.RedisConfigSet7_0 redis_config_7_0 = 8 [json_name="redisConfig_7_0"];
   }
 
   // Resources allocated to Redis hosts.
@@ -168,6 +176,12 @@ message ClusterConfig {
 
   // Access policy to DB
   Access access = 5;
+
+  // Unified configuration of a Redis cluster.
+  config.RedisConfigSet redis = 9;
+
+  // Disk size autoscaling settings
+  DiskSizeAutoscaling disk_size_autoscaling = 10;
 }
 
 message Shard {
@@ -183,7 +197,7 @@ message Host {
 
   enum Role {
 
-    // Role of the host in the cluster is unknown.
+    // Role of the host in the cluster is unknown. Default value.
     ROLE_UNKNOWN = 0;
 
     // Host is the master Redis server in the cluster.
@@ -195,7 +209,7 @@ message Host {
 
   enum Health {
 
-    // Health of the host is unknown.
+    // Health of the host is unknown. Default value.
     HEALTH_UNKNOWN = 0;
 
     // The host is performing all its functions normally.
@@ -226,10 +240,10 @@ message Host {
   // Resources allocated to the Redis host.
   Resources resources = 5;
 
-  // Role of the host in the cluster.
+  // Role of the host in the cluster. If the field has default value, it is not returned in the response.
   Role role = 6;
 
-  // Status code of the aggregated health of the host.
+  // Aggregated health of the host. If the field has default value, it is not returned in the response.
   Health health = 7;
 
   // Services provided by the host.
@@ -249,6 +263,7 @@ message Host {
 message Service {
 
   enum Type {
+    // Service type of the host is unspecified. Default value.
     TYPE_UNSPECIFIED = 0;
 
     // The host is a Redis server.
@@ -263,7 +278,7 @@ message Service {
 
   enum Health {
 
-    // Health of the server is unknown.
+    // Health of the server is unknown. Default value.
     HEALTH_UNKNOWN = 0;
 
     // The server is working normally.
@@ -273,10 +288,10 @@ message Service {
     DEAD = 2;
   }
 
-  // Type of the service provided by the host.
+  // Type of the service provided by the host. If the field has default value, it is not returned in the response.
   Type type = 1;
 
-  // Status code of server availability.
+  // Aggregated health of the service. If the field has default value, it is not returned in the response.
   Health health = 2;
 }
 
@@ -298,4 +313,18 @@ message Resources {
 message Access {
   // Allow access for DataLens
   bool data_lens = 1;
+
+  // Allow access for Web SQL.
+  bool web_sql = 2;
+}
+
+message DiskSizeAutoscaling {
+  // Amount of used storage for automatic disk scaling in the maintenance window, 0 means disabled, in percent.
+  google.protobuf.Int64Value planned_usage_threshold = 1 [(required) = false, (value) = "0-100"];
+
+  // Amount of used storage for immediately  automatic disk scaling, 0 means disabled, in percent.
+  google.protobuf.Int64Value emergency_usage_threshold = 2 [(required) = false, (value) = "0-100"];
+
+  // Limit on how large the storage for database instances can automatically grow, in bytes.
+  google.protobuf.Int64Value disk_size_limit = 3;
 }

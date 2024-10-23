@@ -19,3 +19,5 @@ gen.yaml
 message
 repo.md
 gits
+node_modules
+.DS_Store

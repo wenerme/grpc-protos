@@ -1,0 +1,242 @@
+syntax = "proto3";
+
+package flipt.auth;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "gnostic/openapi/v3/annotations.proto";
+
+option go_package = "go.flipt.io/flipt/rpc/flipt/auth";
+
+option (gnostic.openapi.v3.document) = {
+  components: {
+    security_schemes: {
+      additional_properties: [
+        {
+          name: "bearerAuth";
+          value: {
+            security_scheme: {
+              type: "http";
+              scheme: "bearer";
+            }
+          }
+        },
+        {
+          name: "jwtAuth";
+          value: {
+            security_scheme: {
+              type: "http";
+              scheme: "JWT";
+            }
+          }
+        }
+      ]
+    }
+  }
+  servers: {
+    url: "http://localhost:8080";
+  }
+  security: {
+    additional_properties: [
+      {
+        name: "bearerAuth",
+        value: {
+          value: []
+        }
+      }
+    ]
+  }
+};
+
+
+enum Method {
+  METHOD_NONE = 0;
+  METHOD_TOKEN = 1;
+  METHOD_OIDC = 2;
+  METHOD_KUBERNETES = 3;
+  METHOD_GITHUB = 4;
+  METHOD_JWT = 5;
+  METHOD_CLOUD = 6 [deprecated = true];
+}
+
+message MethodInfo {
+  Method method = 1;
+  bool enabled = 2;
+  bool session_compatible = 3;
+  google.protobuf.Struct metadata = 4;
+}
+
+message ListAuthenticationMethodsResponse {
+  repeated MethodInfo methods = 1;
+}
+
+service PublicAuthenticationService {
+  rpc ListAuthenticationMethods(google.protobuf.Empty) returns (ListAuthenticationMethodsResponse) {}
+}
+
+message Authentication {
+  string id = 1;
+  Method method = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+  map<string, string> metadata = 6;
+}
+
+message GetAuthenticationRequest {
+  string id = 1;
+}
+
+message ListAuthenticationsRequest {
+  Method method = 1;
+  int32 limit = 2;
+  string page_token = 3;
+}
+
+message ListAuthenticationsResponse {
+  repeated Authentication authentications = 1;
+  string next_page_token = 2;
+}
+
+message DeleteAuthenticationRequest {
+  string id = 1;
+}
+
+message ExpireAuthenticationSelfRequest {
+  optional google.protobuf.Timestamp expires_at = 1;
+}
+
+service AuthenticationService {
+  rpc GetAuthenticationSelf(google.protobuf.Empty) returns (Authentication) {
+    option (google.api.http) = {
+      get: "/auth/v1/self"
+    };
+    option (gnostic.openapi.v3.operation) = {
+      operation_id: "getAuthSelf"
+    };
+  }
+  rpc GetAuthentication(GetAuthenticationRequest) returns (Authentication) {
+    option (google.api.http) = {
+      get: "/auth/v1/tokens/{id}"
+    };
+    option (gnostic.openapi.v3.operation) = {
+      operation_id: "getAuthToken"
+    };
+  }
+  rpc ListAuthentications(ListAuthenticationsRequest) returns (ListAuthenticationsResponse) {
+    option (google.api.http) = {
+      get: "/auth/v1/tokens"
+    };
+    option (gnostic.openapi.v3.operation) = {
+      operation_id: "listAuthTokens"
+    };
+  }
+  rpc DeleteAuthentication(DeleteAuthenticationRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/auth/v1/tokens/{id}"
+    };
+    option (gnostic.openapi.v3.operation) = {
+      operation_id: "deleteAuthToken"
+    };
+  }
+  rpc ExpireAuthenticationSelf(ExpireAuthenticationSelfRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      put: "/auth/v1/self/expire"
+    };
+    option (gnostic.openapi.v3.operation) = {
+      operation_id: "expireAuthSelf"
+    };
+  }
+}
+
+message CreateTokenRequest {
+  string name = 1;
+  string description = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  string namespace_key = 4;
+  map<string, string> metadata = 7;
+}
+
+message CreateTokenResponse {
+  string client_token = 1;
+  Authentication authentication = 2;
+}
+
+service AuthenticationMethodTokenService {
+  rpc CreateToken(CreateTokenRequest) returns (CreateTokenResponse) {
+    option (google.api.http) = {
+      post: "/auth/v1/method/token"
+      body: "*"
+    };
+    option (gnostic.openapi.v3.operation) = {
+      operation_id: "createMethodToken"
+    };
+  }
+}
+
+message AuthorizeURLRequest {
+  string provider = 1;
+  string state = 2;
+}
+
+message AuthorizeURLResponse {
+  string authorize_url = 1;
+}
+
+message CallbackRequest {
+  string provider = 1;
+  string code = 2;
+  string state = 3;
+}
+
+message CallbackResponse {
+  string client_token = 1;
+  Authentication authentication = 2;
+}
+
+service AuthenticationMethodOIDCService {
+  rpc AuthorizeURL(AuthorizeURLRequest) returns (AuthorizeURLResponse) {
+    option (google.api.http) = {
+      get: "/auth/v1/method/oidc/{provider}/authorize"
+    };
+    option (gnostic.openapi.v3.operation) = {
+      operation_id: "oidcAuthorizeURL"
+    };
+  }
+  rpc Callback(CallbackRequest) returns (CallbackResponse) {
+    option (google.api.http) = {
+      get: "/auth/v1/method/oidc/{provider}/callback"
+    };
+    option (gnostic.openapi.v3.operation) = {
+      operation_id: "oidcCallback"
+    };
+  }
+}
+
+message VerifyServiceAccountRequest {
+  string service_account_token = 1;
+}
+
+message VerifyServiceAccountResponse {
+  string client_token = 1;
+  Authentication authentication = 2;
+}
+
+service AuthenticationMethodKubernetesService {
+  rpc VerifyServiceAccount(VerifyServiceAccountRequest) returns (VerifyServiceAccountResponse) {
+    option (google.api.http) = {
+      post: "/auth/v1/method/kubernetes/serviceaccount"
+      body: "*"
+    };
+    option (gnostic.openapi.v3.operation) = {
+      operation_id: "kubernetesVerifyServiceAccount"
+    };
+  }
+}
+
+service AuthenticationMethodGithubService {
+  rpc AuthorizeURL(AuthorizeURLRequest) returns (AuthorizeURLResponse) {}
+  rpc Callback(CallbackRequest) returns (CallbackResponse) {}
+}

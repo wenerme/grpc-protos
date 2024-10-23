@@ -1,7 +1,9 @@
+.PHONY: ci gen sync
+
 ci: sync
 
 scripts/sync.sh: scripts/gen.ts sources.yaml
-	deno run --allow-write --allow-read scripts/gen.ts
+	pnpm tsx scripts/gen.ts
 
 gen: scripts/sync.sh
 

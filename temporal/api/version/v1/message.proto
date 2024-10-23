@@ -28,17 +28,16 @@ option go_package = "go.temporal.io/api/version/v1;version";
 option java_package = "io.temporal.api.version.v1";
 option java_multiple_files = true;
 option java_outer_classname = "MessageProto";
-option ruby_package = "Temporal::Api::Version::V1";
-option csharp_namespace = "Temporal.Api.Version.V1";
+option ruby_package = "Temporalio::Api::Version::V1";
+option csharp_namespace = "Temporalio.Api.Version.V1";
 
 import "google/protobuf/timestamp.proto";
-import "dependencies/gogoproto/gogo.proto";
 import "temporal/api/enums/v1/common.proto";
 
 // ReleaseInfo contains information about specific version of temporal.
 message ReleaseInfo {
     string version = 1;
-    google.protobuf.Timestamp release_time = 2 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp release_time = 2;
     string notes = 3;
 }
 
@@ -54,6 +53,6 @@ message VersionInfo {
     ReleaseInfo recommended = 2;
     string instructions = 3;
     repeated Alert alerts = 4;
-    google.protobuf.Timestamp last_update_time = 5 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp last_update_time = 5;
 }
 

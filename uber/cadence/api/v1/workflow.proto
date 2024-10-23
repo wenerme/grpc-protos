@@ -46,6 +46,8 @@ message WorkflowExecutionInfo {
   ResetPoints auto_reset_points = 11;
   string task_list = 12;
   bool is_cron = 13;
+  google.protobuf.Timestamp update_time = 14;
+  map<string, string> partition_config = 15;
 }
 
 message WorkflowExecutionConfiguration {
@@ -79,6 +81,7 @@ message PendingActivityInfo {
   google.protobuf.Timestamp expiration_time = 10;
   Failure last_failure = 11;
   string last_worker_identity = 12;
+  string started_worker_identity = 13;
 }
 
 message PendingChildExecutionInfo {
@@ -227,9 +230,11 @@ enum ChildWorkflowExecutionFailedCause {
 enum CancelExternalWorkflowExecutionFailedCause {
   CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID = 0;
   CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION = 1;
+  CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_WORKFLOW_ALREADY_COMPLETED = 2;
 }
 
 enum SignalExternalWorkflowExecutionFailedCause {
   SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID = 0;
   SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION = 1;
+  SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_WORKFLOW_ALREADY_COMPLETED = 2;
 }

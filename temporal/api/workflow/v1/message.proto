@@ -28,41 +28,85 @@ option go_package = "go.temporal.io/api/workflow/v1;workflow";
 option java_package = "io.temporal.api.workflow.v1";
 option java_multiple_files = true;
 option java_outer_classname = "MessageProto";
-option ruby_package = "Temporal::Api::Workflow::V1";
-option csharp_namespace = "Temporal.Api.Workflow.V1";
+option ruby_package = "Temporalio::Api::Workflow::V1";
+option csharp_namespace = "Temporalio.Api.Workflow.V1";
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
-import "dependencies/gogoproto/gogo.proto";
-
+import "temporal/api/enums/v1/common.proto";
 import "temporal/api/enums/v1/workflow.proto";
 import "temporal/api/common/v1/message.proto";
 import "temporal/api/failure/v1/message.proto";
 import "temporal/api/taskqueue/v1/message.proto";
+import "temporal/api/sdk/v1/user_metadata.proto";
 
 message WorkflowExecutionInfo {
     temporal.api.common.v1.WorkflowExecution execution = 1;
     temporal.api.common.v1.WorkflowType type = 2;
-    google.protobuf.Timestamp start_time = 3 [(gogoproto.stdtime) = true];
-    google.protobuf.Timestamp close_time = 4 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp start_time = 3;
+    google.protobuf.Timestamp close_time = 4;
     temporal.api.enums.v1.WorkflowExecutionStatus status = 5;
     int64 history_length = 6;
     string parent_namespace_id = 7;
     temporal.api.common.v1.WorkflowExecution parent_execution = 8;
-    google.protobuf.Timestamp execution_time = 9 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp execution_time = 9;
     temporal.api.common.v1.Memo memo = 10;
     temporal.api.common.v1.SearchAttributes search_attributes = 11;
     ResetPoints auto_reset_points = 12;
     string task_queue = 13;
     int64 state_transition_count = 14;
+    int64 history_size_bytes = 15;
+    // If set, the most recent worker version stamp that appeared in a workflow task completion
+    temporal.api.common.v1.WorkerVersionStamp most_recent_worker_version_stamp = 16;
+    // Workflow execution duration is defined as difference between close time and execution time.
+    // This field is only populated if the workflow is closed.
+    google.protobuf.Duration execution_duration = 17;
+    // Contains information about the root workflow execution.
+    // The root workflow execution is defined as follows:
+    // 1. A workflow without parent workflow is its own root workflow.
+    // 2. A workflow that has a parent workflow has the same root workflow as its parent workflow.
+    // Note: workflows continued as new or reseted may or may not have parents, check examples below.
+    //
+    // Examples:
+    //   Scenario 1: Workflow W1 starts child workflow W2, and W2 starts child workflow W3.
+    //     - The root workflow of all three workflows is W1.
+    //   Scenario 2: Workflow W1 starts child workflow W2, and W2 continued as new W3.
+    //     - The root workflow of all three workflows is W1.
+    //   Scenario 3: Workflow W1 continued as new W2.
+    //     - The root workflow of W1 is W1 and the root workflow of W2 is W2.
+    //   Scenario 4: Workflow W1 starts child workflow W2, and W2 is reseted, creating W3
+    //     - The root workflow of all three workflows is W1.
+    //   Scenario 5: Workflow W1 is reseted, creating W2.
+    //     - The root workflow of W1 is W1 and the root workflow of W2 is W2.
+    temporal.api.common.v1.WorkflowExecution root_execution = 18;
+    // The currently assigned build ID for this execution. Presence of this value means worker versioning is used
+    // for this execution. Assigned build ID is selected based on Worker Versioning Assignment Rules
+    // when the first workflow task of the execution is scheduled. If the first workflow task fails and is scheduled
+    // again, the assigned build ID may change according to the latest versioning rules.
+    // Assigned build ID can also change in the middle of a execution if Compatible Redirect Rules are applied to
+    // this execution.
+    string assigned_build_id = 19;
+    // Build ID inherited from a previous/parent execution. If present, assigned_build_id will be set to this, instead
+    // of using the assignment rules.
+    string inherited_build_id = 20;
+    // The first run ID in the execution chain.
+    // Executions created via the following operations are considered to be in the same chain
+    // - ContinueAsNew
+    // - Workflow Retry
+    // - Workflow Reset
+    // - Cron Schedule
+    string first_run_id = 21;
 }
 
 message WorkflowExecutionConfig {
     temporal.api.taskqueue.v1.TaskQueue task_queue = 1;
-    google.protobuf.Duration workflow_execution_timeout = 2 [(gogoproto.stdduration) = true];
-    google.protobuf.Duration workflow_run_timeout = 3 [(gogoproto.stdduration) = true];
-    google.protobuf.Duration default_workflow_task_timeout = 4 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_execution_timeout = 2;
+    google.protobuf.Duration workflow_run_timeout = 3;
+    google.protobuf.Duration default_workflow_task_timeout = 4;
+    // User metadata provided on start workflow.
+    temporal.api.sdk.v1.UserMetadata user_metadata = 5;
 }
 
 message PendingActivityInfo {
@@ -70,14 +114,41 @@ message PendingActivityInfo {
     temporal.api.common.v1.ActivityType activity_type = 2;
     temporal.api.enums.v1.PendingActivityState state = 3;
     temporal.api.common.v1.Payloads heartbeat_details = 4;
-    google.protobuf.Timestamp last_heartbeat_time = 5 [(gogoproto.stdtime) = true];
-    google.protobuf.Timestamp last_started_time = 6 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp last_heartbeat_time = 5;
+    google.protobuf.Timestamp last_started_time = 6;
     int32 attempt = 7;
     int32 maximum_attempts = 8;
-    google.protobuf.Timestamp scheduled_time = 9 [(gogoproto.stdtime) = true];
-    google.protobuf.Timestamp expiration_time = 10 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp scheduled_time = 9;
+    google.protobuf.Timestamp expiration_time = 10;
     temporal.api.failure.v1.Failure last_failure = 11;
     string last_worker_identity = 12;
+    // Absence of `assigned_build_id` generally means this task is on an "unversioned" task queue.
+    // In rare cases, it can also mean that the task queue is versioned but we failed to write activity's
+    // independently-assigned build ID to the database. This case heals automatically once the task is dispatched.
+    oneof assigned_build_id {
+        // When present, it means this activity is assigned to the build ID of its workflow.
+        google.protobuf.Empty use_workflow_build_id = 13;
+        // This means the activity is independently versioned and not bound to the build ID of its workflow.
+        // The activity will use the build id in this field instead.
+        // If the task fails and is scheduled again, the assigned build ID may change according to the latest versioning
+        // rules.
+        string last_independently_assigned_build_id = 14;
+    }
+    // The version stamp of the worker to whom this activity was most recently dispatched
+    temporal.api.common.v1.WorkerVersionStamp last_worker_version_stamp = 15;
+
+    // The time activity will wait until the next retry.
+    // If activity is currently running it will be next retry interval if activity failed.
+    // If activity is currently waiting it will be current retry interval.
+    // If there will be no retry it will be null.
+    google.protobuf.Duration current_retry_interval = 16;
+
+    // The time when the last activity attempt was completed. If activity has not been completed yet then it will be null.
+    google.protobuf.Timestamp last_attempt_complete_time = 17;
+
+    // Next time when activity will be scheduled.
+    // If activity is currently scheduled or started it will be null.
+    google.protobuf.Timestamp next_attempt_schedule_time = 18;
 }
 
 message PendingChildExecutionInfo {
@@ -91,13 +162,13 @@ message PendingChildExecutionInfo {
 
 message PendingWorkflowTaskInfo {
     temporal.api.enums.v1.PendingWorkflowTaskState state = 1;
-    google.protobuf.Timestamp scheduled_time = 2 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp scheduled_time = 2;
     // original_scheduled_time is the scheduled time of the first workflow task during workflow task heartbeat.
     // Heartbeat workflow task is done by RespondWorkflowTaskComplete with ForceCreateNewWorkflowTask == true and no command
     // In this case, OriginalScheduledTime won't change. Then when current time - original_scheduled_time exceeds
     // some threshold, the workflow task will be forced timeout.
-    google.protobuf.Timestamp original_scheduled_time = 3 [(gogoproto.stdtime) = true];
-    google.protobuf.Timestamp started_time = 4 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp original_scheduled_time = 3;
+    google.protobuf.Timestamp started_time = 4;
     int32 attempt = 5;
 }
 
@@ -105,15 +176,23 @@ message ResetPoints {
     repeated ResetPointInfo points = 1;
 }
 
+// ResetPointInfo records the workflow event id that is the first one processed by a given
+// build id or binary checksum. A new reset point will be created if either build id or binary
+// checksum changes (although in general only one or the other will be used at a time).
 message ResetPointInfo {
+    // Worker build id.
+    string build_id = 7;
+    // A worker binary version identifier (deprecated).
     string binary_checksum = 1;
+    // The first run ID in the execution chain that was touched by this worker build.
     string run_id = 2;
+    // Event ID of the first WorkflowTaskCompleted event processed by this worker build.
     int64 first_workflow_task_completed_id = 3;
-    google.protobuf.Timestamp create_time = 4 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp create_time = 4;
     // (-- api-linter: core::0214::resource-expiry=disabled
     //     aip.dev/not-precedent: TTL is not defined for ResetPointInfo. --)
     // The time that the run is deleted due to retention.
-    google.protobuf.Timestamp expire_time = 5 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp expire_time = 5;
     // false if the reset point has pending childWFs/reqCancels/signalExternals.
     bool resettable = 6;
 }
@@ -127,11 +206,11 @@ message NewWorkflowExecutionInfo {
     // Serialized arguments to the workflow.
     temporal.api.common.v1.Payloads input = 4;
     // Total workflow execution timeout including retries and continue as new.
-    google.protobuf.Duration workflow_execution_timeout = 5 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_execution_timeout = 5;
     // Timeout of a single workflow run.
-    google.protobuf.Duration workflow_run_timeout = 6 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_run_timeout = 6;
     // Timeout of a single workflow task.
-    google.protobuf.Duration workflow_task_timeout = 7 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_task_timeout = 7;
     // Default: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE.
     temporal.api.enums.v1.WorkflowIdReusePolicy workflow_id_reuse_policy = 8;
     // The retry policy for the workflow. Will never exceed `workflow_execution_timeout`.
@@ -141,5 +220,100 @@ message NewWorkflowExecutionInfo {
     temporal.api.common.v1.Memo memo = 11;
     temporal.api.common.v1.SearchAttributes search_attributes = 12;
     temporal.api.common.v1.Header header = 13;
+    // Metadata on the workflow if it is started. This is carried over to the WorkflowExecutionConfig
+    // for use by user interfaces to display the fixed as-of-start summary and details of the
+    // workflow.
+    temporal.api.sdk.v1.UserMetadata user_metadata = 14;
 }
 
+// CallbackInfo contains the state of an attached workflow callback.
+message CallbackInfo {
+    // Trigger for when the workflow is closed.
+    message WorkflowClosed {}
+
+    message Trigger {
+        oneof variant {
+            WorkflowClosed workflow_closed = 1;
+        }
+    }
+
+    // Information on how this callback should be invoked (e.g. its URL and type).
+    temporal.api.common.v1.Callback callback = 1;
+    // Trigger for this callback.
+    Trigger trigger = 2;
+    // The time when the callback was registered.
+    google.protobuf.Timestamp registration_time = 3;
+
+    temporal.api.enums.v1.CallbackState state = 4;
+    // The number of attempts made to deliver the callback.
+    // This number represents a minimum bound since the attempt is incremented after the callback request completes.
+    int32 attempt = 5;
+
+    // The time when the last attempt completed.
+    google.protobuf.Timestamp last_attempt_complete_time = 6;
+    // The last attempt's failure, if any.
+    temporal.api.failure.v1.Failure last_attempt_failure = 7;
+    // The time when the next attempt is scheduled.
+    google.protobuf.Timestamp next_attempt_schedule_time = 8;
+}
+
+// PendingNexusOperationInfo contains the state of a pending Nexus operation.
+message PendingNexusOperationInfo {
+    // Endpoint name.
+    // Resolved to a URL via the cluster's endpoint registry.
+    string endpoint = 1;
+    // Service name.
+    string service = 2;
+    // Operation name.
+    string operation = 3;
+
+    // Operation ID. Only set for asynchronous operations after a successful StartOperation call.
+    string operation_id = 4;
+
+    // Schedule-to-close timeout for this operation.
+    // This is the only timeout settable by a workflow.
+    // (-- api-linter: core::0140::prepositions=disabled
+    //     aip.dev/not-precedent: "to" is used to indicate interval. --)
+    google.protobuf.Duration schedule_to_close_timeout = 5;
+
+    // The time when the operation was scheduled.
+    google.protobuf.Timestamp scheduled_time = 6;
+
+    temporal.api.enums.v1.PendingNexusOperationState state = 7;
+
+    // The number of attempts made to deliver the start operation request.
+    // This number represents a minimum bound since the attempt is incremented after the request completes.
+    int32 attempt = 8;
+
+    // The time when the last attempt completed.
+    google.protobuf.Timestamp last_attempt_complete_time = 9;
+    // The last attempt's failure, if any.
+    temporal.api.failure.v1.Failure last_attempt_failure = 10;
+    // The time when the next attempt is scheduled.
+    google.protobuf.Timestamp next_attempt_schedule_time = 11;
+
+    NexusOperationCancellationInfo cancellation_info = 12;
+
+    // The event ID of the NexusOperationScheduled event. Can be used to correlate an operation in the
+    // DescribeWorkflowExecution response with workflow history.
+    int64 scheduled_event_id = 13;
+}
+
+// NexusOperationCancellationInfo contains the state of a nexus operation cancellation.
+message NexusOperationCancellationInfo {
+    // The time when cancellation was requested.
+    google.protobuf.Timestamp requested_time = 1;
+
+    temporal.api.enums.v1.NexusOperationCancellationState state = 2;
+
+    // The number of attempts made to deliver the cancel operation request.
+    // This number represents a minimum bound since the attempt is incremented after the request completes.
+    int32 attempt = 3;
+
+    // The time when the last attempt completed.
+    google.protobuf.Timestamp last_attempt_complete_time = 4;
+    // The last attempt's failure, if any.
+    temporal.api.failure.v1.Failure last_attempt_failure = 5;
+    // The time when the next attempt is scheduled.
+    google.protobuf.Timestamp next_attempt_schedule_time = 6;
+}

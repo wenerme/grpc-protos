@@ -3,7 +3,6 @@ syntax = "proto3";
 package yandex.cloud.k8s.v1;
 
 import "google/protobuf/timestamp.proto";
-
 import "yandex/cloud/k8s/v1/maintenance.proto";
 import "yandex/cloud/k8s/v1/version.proto";
 import "yandex/cloud/validation.proto";
@@ -95,7 +94,7 @@ message Cluster {
   // When creating a Kubernetes cluster, you should specify one of three release channels. The release channel contains several Kubernetes versions.
   // Channels differ in the set of available versions, the management of auto-updates, and the updates received.
   // You can't change the channel once the Kubernetes cluster is created, you can only recreate the Kubernetes cluster and specify a new release channel.
-  // For more details see [documentation](https://cloud.yandex.com/docs/managed-kubernetes/concepts/release-channels-and-updates).
+  // For more details see [documentation](/docs/managed-kubernetes/concepts/release-channels-and-updates).
   ReleaseChannel release_channel = 15;
 
   NetworkPolicy network_policy = 16;
@@ -134,6 +133,12 @@ message Master {
     RegionalMaster regional_master = 7;
   }
 
+  // Locations specification for Kubernetes control-plane (master) instances.
+  repeated Location locations = 10;
+
+  // Number of etcd nodes in cluster.
+  int64 etcd_cluster_size = 11;
+
   // Version of Kubernetes components that runs on the master.
   string version = 2;
 
@@ -152,6 +157,9 @@ message Master {
 
   // Master security groups.
   repeated string security_group_ids = 8;
+
+  // Cloud Logging for master components.
+  MasterLogging master_logging = 9;
 }
 
 message MasterAuth {
@@ -179,6 +187,17 @@ message RegionalMaster {
 
   // IPv4 external network address that is assigned to the master.
   string external_v4_address = 3;
+
+  // IPv6 external network address that is assigned to the master.
+  string external_v6_address = 4;
+}
+
+message Location {
+  // ID of the availability zone where the master resides.
+  string zone_id = 1;
+
+  // ID of the VPC network's subnet where the master resides.
+  string subnet_id = 2;
 }
 
 message MasterEndpoints {
@@ -193,6 +212,7 @@ message MasterEndpoints {
 }
 
 message IPAllocationPolicy {
+  reserved 3 to 4;
   // CIDR block. IP range for allocating pod addresses.
   //
   // It should not overlap with any subnet in the network the Kubernetes cluster located in. Static routes will be
@@ -223,6 +243,32 @@ message MasterMaintenancePolicy {
   // Maintenance window settings. Update will start at the specified time and last no more than the specified duration.
   // The time is set in UTC.
   MaintenanceWindow maintenance_window = 2;
+}
+
+message MasterLogging {
+  // Identifies whether Cloud Logging is enabled for master components.
+  bool enabled = 1;
+
+  // The destination of master components' logs.
+  oneof destination {
+    // ID of the log group where logs of master components should be stored.
+    string log_group_id = 2 [(pattern) = "([a-zA-Z][-a-zA-Z0-9_.]{0,63})?"];
+
+    // ID of the folder where logs should be stored (in default group).
+    string folder_id = 3 [(pattern) = "([a-zA-Z][-a-zA-Z0-9_.]{0,63})?"];
+  }
+
+  // Identifies whether Cloud Logging is enabled for audit logs.
+  bool audit_enabled = 4;
+
+  // Identifies whether Cloud Logging is enabled for cluster-autoscaler.
+  bool cluster_autoscaler_enabled = 5;
+
+  // Identifies whether Cloud Logging is enabled for kube-apiserver.
+  bool kube_apiserver_enabled = 6;
+
+  // Identifies whether Cloud Logging is enabled for events.
+  bool events_enabled = 7;
 }
 
 message NetworkPolicy {

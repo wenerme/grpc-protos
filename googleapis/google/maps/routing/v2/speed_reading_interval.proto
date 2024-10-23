@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package google.maps.routing.v2;
 
 option cc_enable_arenas = true;
 option csharp_namespace = "Google.Maps.Routing.V2";
-option go_package = "google.golang.org/genproto/googleapis/maps/routing/v2;routing";
+option go_package = "cloud.google.com/go/maps/routing/apiv2/routingpb;routingpb";
 option java_multiple_files = true;
 option java_outer_classname = "SpeedReadingIntervalProto";
 option java_package = "com.google.maps.routing.v2";
@@ -28,8 +28,8 @@ option ruby_package = "Google::Maps::Routing::V2";
 
 // Traffic density indicator on a contiguous segment of a polyline or path.
 // Given a path with points P_0, P_1, ... , P_N (zero-based index), the
-// SpeedReadingInterval defines an interval and describes its traffic using the
-// following categories.
+// `SpeedReadingInterval` defines an interval and describes its traffic using
+// the following categories.
 message SpeedReadingInterval {
   // The classification of polyline speed based on traffic data.
   enum Speed {
@@ -47,13 +47,13 @@ message SpeedReadingInterval {
   }
 
   // The starting index of this interval in the polyline.
-  // In JSON, when the index is 0, the field appears to be unpopulated.
-  int32 start_polyline_point_index = 1;
+  optional int32 start_polyline_point_index = 1;
 
   // The ending index of this interval in the polyline.
-  // In JSON, when the index is 0, the field appears to be unpopulated.
-  int32 end_polyline_point_index = 2;
+  optional int32 end_polyline_point_index = 2;
 
-  // Traffic speed in this interval.
-  Speed speed = 3;
+  oneof speed_type {
+    // Traffic speed in this interval.
+    Speed speed = 3;
+  }
 }

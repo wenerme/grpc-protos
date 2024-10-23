@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import "google/cloud/aiplatform/v1/encryption_spec.proto";
 import "google/protobuf/timestamp.proto";
 
 option csharp_namespace = "Google.Cloud.AIPlatform.V1";
-option go_package = "google.golang.org/genproto/googleapis/cloud/aiplatform/v1;aiplatform";
+option go_package = "cloud.google.com/go/aiplatform/apiv1/aiplatformpb;aiplatformpb";
 option java_multiple_files = true;
 option java_outer_classname = "MetadataProto";
 option java_package = "com.google.cloud.aiplatform.v1";
@@ -43,14 +43,23 @@ message MetadataStore {
     int64 disk_utilization_bytes = 1;
   }
 
+  // Represents Dataplex integration settings.
+  message DataplexConfig {
+    // Optional. Whether or not Data Lineage synchronization is enabled for
+    // Vertex Pipelines.
+    bool enabled_pipelines_lineage = 1 [(google.api.field_behavior) = OPTIONAL];
+  }
+
   // Output only. The resource name of the MetadataStore instance.
   string name = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Output only. Timestamp when this MetadataStore was created.
-  google.protobuf.Timestamp create_time = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp create_time = 3
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Output only. Timestamp when this MetadataStore was last updated.
-  google.protobuf.Timestamp update_time = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp update_time = 4
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Customer-managed encryption key spec for a Metadata Store. If set, this
   // Metadata Store and all sub-resources of this Metadata Store are secured
@@ -62,4 +71,7 @@ message MetadataStore {
 
   // Output only. State information of the MetadataStore.
   MetadataStoreState state = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Optional. Dataplex integration settings.
+  DataplexConfig dataplex_config = 8 [(google.api.field_behavior) = OPTIONAL];
 }

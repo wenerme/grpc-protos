@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,10 +22,12 @@ import "google/api/field_behavior.proto";
 import "google/api/resource.proto";
 import "google/longrunning/operations.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
+import "google/type/date.proto";
 
-option go_package = "google.golang.org/genproto/googleapis/cloud/functions/v2beta;functions";
+option go_package = "cloud.google.com/go/functions/apiv2beta/functionspb;functionspb";
 option java_multiple_files = true;
 option java_outer_classname = "FunctionsProto";
 option java_package = "com.google.cloud.functions.v2beta";
@@ -62,6 +64,10 @@ option (google.api.resource_definition) = {
   type: "pubsub.googleapis.com/Topic"
   pattern: "projects/{project}/topics/{topic}"
 };
+option (google.api.resource_definition) = {
+  type: "cloudkms.googleapis.com/CryptoKey"
+  pattern: "projects/{project}/locations/{location}/keyRings/{key_ring}/cryptoKeys/{crypto_key}"
+};
 
 // Google Cloud Functions is used to deploy functions that are executed by
 // Google in response to various events. Data connected with that event is
@@ -71,7 +77,8 @@ option (google.api.resource_definition) = {
 // executed and how it is triggered.
 service FunctionService {
   option (google.api.default_host) = "cloudfunctions.googleapis.com";
-  option (google.api.oauth_scopes) = "https://www.googleapis.com/auth/cloud-platform";
+  option (google.api.oauth_scopes) =
+      "https://www.googleapis.com/auth/cloud-platform";
 
   // Returns a function with the given name from the requested project.
   rpc GetFunction(GetFunctionRequest) returns (Function) {
@@ -92,7 +99,8 @@ service FunctionService {
   // Creates a new function. If a function with the given name already exists in
   // the specified project, the long running operation will return
   // `ALREADY_EXISTS` error.
-  rpc CreateFunction(CreateFunctionRequest) returns (google.longrunning.Operation) {
+  rpc CreateFunction(CreateFunctionRequest)
+      returns (google.longrunning.Operation) {
     option (google.api.http) = {
       post: "/v2beta/{parent=projects/*/locations/*}/functions"
       body: "function"
@@ -105,7 +113,8 @@ service FunctionService {
   }
 
   // Updates existing function.
-  rpc UpdateFunction(UpdateFunctionRequest) returns (google.longrunning.Operation) {
+  rpc UpdateFunction(UpdateFunctionRequest)
+      returns (google.longrunning.Operation) {
     option (google.api.http) = {
       patch: "/v2beta/{function.name=projects/*/locations/*/functions/*}"
       body: "function"
@@ -120,7 +129,8 @@ service FunctionService {
   // Deletes a function with the given name from the specified project. If the
   // given function is used by some trigger, the trigger will be updated to
   // remove this function.
-  rpc DeleteFunction(DeleteFunctionRequest) returns (google.longrunning.Operation) {
+  rpc DeleteFunction(DeleteFunctionRequest)
+      returns (google.longrunning.Operation) {
     option (google.api.http) = {
       delete: "/v2beta/{name=projects/*/locations/*/functions/*}"
     };
@@ -147,14 +157,15 @@ service FunctionService {
   //   attached, the identity from the credentials would be used, but that
   //   identity does not have permissions to upload files to the URL.
   //
-  // When making a HTTP PUT request, these two headers need to be specified:
+  // When making a HTTP PUT request, specify this header:
   //
   // * `content-type: application/zip`
   //
-  // And this header SHOULD NOT be specified:
+  // Do not specify this header:
   //
   // * `Authorization: Bearer YOUR_TOKEN`
-  rpc GenerateUploadUrl(GenerateUploadUrlRequest) returns (GenerateUploadUrlResponse) {
+  rpc GenerateUploadUrl(GenerateUploadUrlRequest)
+      returns (GenerateUploadUrlResponse) {
     option (google.api.http) = {
       post: "/v2beta/{parent=projects/*/locations/*}/functions:generateUploadUrl"
       body: "*"
@@ -166,7 +177,8 @@ service FunctionService {
   // 30 minutes of generation.
   // For more information about the signed URL usage see:
   // https://cloud.google.com/storage/docs/access-control/signed-urls
-  rpc GenerateDownloadUrl(GenerateDownloadUrlRequest) returns (GenerateDownloadUrlResponse) {
+  rpc GenerateDownloadUrl(GenerateDownloadUrlRequest)
+      returns (GenerateDownloadUrlResponse) {
     option (google.api.http) = {
       post: "/v2beta/{name=projects/*/locations/*/functions/*}:generateDownloadUrl"
       body: "*"
@@ -180,6 +192,21 @@ service FunctionService {
     };
     option (google.api.method_signature) = "parent";
   }
+}
+
+// The type of the long running operation.
+enum OperationType {
+  // Unspecified
+  OPERATIONTYPE_UNSPECIFIED = 0;
+
+  // CreateFunction
+  CREATE_FUNCTION = 1;
+
+  // UpdateFunction
+  UPDATE_FUNCTION = 2;
+
+  // DeleteFunction
+  DELETE_FUNCTION = 3;
 }
 
 // The environment the function is hosted on.
@@ -230,9 +257,6 @@ message Function {
   // globally and match pattern `projects/*/locations/*/functions/*`
   string name = 1;
 
-  // Describe whether the function is gen1 or gen2.
-  Environment environment = 10;
-
   // User-provided description of a function.
   string description = 2;
 
@@ -252,13 +276,38 @@ message Function {
   State state = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Output only. The last update timestamp of a Cloud Function.
-  google.protobuf.Timestamp update_time = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp update_time = 7
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Labels associated with this Cloud Function.
   map<string, string> labels = 8;
 
   // Output only. State Messages for this Cloud Function.
-  repeated StateMessage state_messages = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  repeated StateMessage state_messages = 9
+      [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Describe whether the function is 1st Gen or 2nd Gen.
+  Environment environment = 10;
+
+  // Output only. The deployed url for the function.
+  string url = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // [Preview] Resource name of a KMS crypto key (managed by the user) used to
+  // encrypt/decrypt function resources.
+  //
+  // It must match the pattern
+  // `projects/{project}/locations/{location}/keyRings/{key_ring}/cryptoKeys/{crypto_key}`.
+  string kms_key_name = 25 [(google.api.resource_reference) = {
+    type: "cloudkms.googleapis.com/CryptoKey"
+  }];
+
+  // Output only. Reserved for future use.
+  bool satisfies_pzs = 27 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Output only. The create timestamp of a Cloud Function. This is only
+  // applicable to 2nd Gen functions.
+  google.protobuf.Timestamp create_time = 28
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // Informational messages about the state of the Cloud Function or Operation.
@@ -304,6 +353,11 @@ message StorageSource {
   // Google Cloud Storage generation for the object. If the generation is
   // omitted, the latest generation will be used.
   int64 generation = 3;
+
+  // When the specified storage bucket is a 1st gen function uploard url bucket,
+  // this field should be set as the generated upload url for 1st gen
+  // deployment.
+  string source_upload_url = 4;
 }
 
 // Location of the source in a Google Cloud Source Repository.
@@ -357,6 +411,11 @@ message Source {
     // If provided, get the source from this location in a Cloud Source
     // Repository.
     RepoSource repo_source = 2;
+
+    // If provided, get the source from GitHub repository. This option is valid
+    // only for GCF 1st Gen function.
+    // Example: https://github.com/<user>/<repo>/blob/<commit>/<path-to-code>
+    string git_uri = 3;
   }
 }
 
@@ -370,13 +429,41 @@ message SourceProvenance {
   // A copy of the build's `source.repo_source`, if exists, with any
   // revisions resolved.
   RepoSource resolved_repo_source = 2;
+
+  // A copy of the build's `source.git_uri`, if exists, with any commits
+  // resolved.
+  string git_uri = 3;
 }
 
 // Describes the Build step of the function that builds a container from the
 // given source.
 message BuildConfig {
-  // Output only. The Cloud Build name of the latest successful deployment of the
-  // function.
+  // Docker Registry to use for storing function Docker images.
+  enum DockerRegistry {
+    // Unspecified.
+    DOCKER_REGISTRY_UNSPECIFIED = 0;
+
+    // Docker images will be stored in multi-regional Container Registry
+    // repositories named `gcf`.
+    CONTAINER_REGISTRY = 1;
+
+    // Docker images will be stored in regional Artifact Registry repositories.
+    // By default, GCF will create and use repositories named `gcf-artifacts`
+    // in every region in which a function is deployed. But the repository to
+    // use can also be specified by the user using the `docker_repository`
+    // field.
+    ARTIFACT_REGISTRY = 2;
+  }
+
+  // This controls when security patches are applied to the runtime environment.
+  oneof runtime_update_policy {
+    AutomaticUpdatePolicy automatic_update_policy = 40;
+
+    OnDeployUpdatePolicy on_deploy_update_policy = 41;
+  }
+
+  // Output only. The Cloud Build name of the latest successful deployment of
+  // the function.
   string build = 1 [
     (google.api.field_behavior) = OUTPUT_ONLY,
     (google.api.resource_reference) = {
@@ -403,7 +490,8 @@ message BuildConfig {
   Source source = 4;
 
   // Output only. A permanent fixed identifier for source.
-  SourceProvenance source_provenance = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  SourceProvenance source_provenance = 8
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Name of the Cloud Build Custom Worker Pool that should be used to build the
   // function. The format of this field is
@@ -418,16 +506,25 @@ message BuildConfig {
   // granted the role Cloud Build Custom Workers Builder
   // (roles/cloudbuild.customworkers.builder) in the project.
   string worker_pool = 5 [(google.api.resource_reference) = {
-                            type: "cloudbuild.googleapis.com/WorkerPool"
-                          }];
+    type: "cloudbuild.googleapis.com/WorkerPool"
+  }];
 
   // User-provided build-time environment variables for the function
   map<string, string> environment_variables = 6;
 
-  // Optional. User managed repository created in Artifact Registry optionally with a
-  // customer managed encryption key. This is the repository to which the
-  // function docker image will be pushed after it is built by Cloud Build.
-  // If unspecified, GCF will create and use a repository named 'gcf-artifacts'
+  // Docker Registry to use for this deployment. This configuration is only
+  // applicable to 1st Gen functions, 2nd Gen functions can only use Artifact
+  // Registry.
+  //
+  // If unspecified, it defaults to `ARTIFACT_REGISTRY`.
+  // If `docker_repository` field is specified, this field should either be left
+  // unspecified or set to `ARTIFACT_REGISTRY`.
+  DockerRegistry docker_registry = 10;
+
+  // Repository in Artifact Registry to which the function docker image will be
+  // pushed after it is built by Cloud Build. If specified by user, it is
+  // created and managed by user with a customer managed encryption key.
+  // Otherwise, GCF will create and use a repository named 'gcf-artifacts'
   // for every deployed region.
   //
   // It must match the pattern
@@ -436,12 +533,13 @@ message BuildConfig {
   // Cross-project repositories are not supported.
   // Cross-location repositories are not supported.
   // Repository format must be 'DOCKER'.
-  string docker_repository = 7 [
-    (google.api.field_behavior) = OPTIONAL,
-    (google.api.resource_reference) = {
-      type: "artifactregistry.googleapis.com/Repository"
-    }
-  ];
+  string docker_repository = 7 [(google.api.resource_reference) = {
+    type: "artifactregistry.googleapis.com/Repository"
+  }];
+
+  // Service account to be used for building the container. The format of this
+  // field is `projects/{projectId}/serviceAccounts/{serviceAccountEmail}`.
+  string service_account = 27;
 }
 
 // Describes the Service being deployed.
@@ -482,14 +580,33 @@ message ServiceConfig {
     ALLOW_INTERNAL_AND_GCLB = 3;
   }
 
+  // Available security level settings.
+  //
+  // This enforces security protocol on function URL.
+  //
+  // Security level is only configurable for 1st Gen functions, If unspecified,
+  // SECURE_OPTIONAL will be used. 2nd Gen functions are SECURE_ALWAYS ONLY.
+  enum SecurityLevel {
+    // Unspecified.
+    SECURITY_LEVEL_UNSPECIFIED = 0;
+
+    // Requests for a URL that match this handler that do not use HTTPS are
+    // automatically redirected to the HTTPS URL with the same path. Query
+    // parameters are reserved for the redirect.
+    SECURE_ALWAYS = 1;
+
+    // Both HTTP and HTTPS requests with URLs that match the handler succeed
+    // without redirects. The application can examine the request to determine
+    // which protocol was used and respond accordingly.
+    SECURE_OPTIONAL = 2;
+  }
+
   // Output only. Name of the service associated with a Function.
   // The format of this field is
   // `projects/{project}/locations/{region}/services/{service}`
   string service = 1 [
     (google.api.field_behavior) = OUTPUT_ONLY,
-    (google.api.resource_reference) = {
-      type: "run.googleapis.com/Service"
-    }
+    (google.api.resource_reference) = { type: "run.googleapis.com/Service" }
   ];
 
   // The function execution timeout. Execution is considered failed and
@@ -504,6 +621,13 @@ message ServiceConfig {
   // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/apimachinery/pkg/api/resource/quantity.go
   // a full description.
   string available_memory = 13;
+
+  // The number of CPUs used in a single container instance.
+  // Default value is calculated from available memory.
+  // Supports the same values as Cloud Run, see
+  // https://cloud.google.com/run/docs/reference/rest/v1/Container#resourcerequirements
+  // Example: "1" indicates 1 vCPU
+  string available_cpu = 22;
 
   // Environment variables that shall be available during function execution.
   map<string, string> environment_variables = 4;
@@ -536,8 +660,8 @@ message ServiceConfig {
   // The Serverless VPC Access connector that this cloud function can connect
   // to. The format of this field is `projects/*/locations/*/connectors/*`.
   string vpc_connector = 6 [(google.api.resource_reference) = {
-                              type: "vpcaccess.googleapis.com/Connector"
-                            }];
+    type: "vpcaccess.googleapis.com/Connector"
+  }];
 
   // The egress settings for the connector, controlling what traffic is diverted
   // through it.
@@ -569,6 +693,21 @@ message ServiceConfig {
 
   // Output only. The name of service revision.
   string revision = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Sets the maximum number of concurrent requests that each instance
+  // can receive. Defaults to 1.
+  int32 max_instance_request_concurrency = 20;
+
+  // Security level configure whether the function only accepts https.
+  // This configuration is only applicable to 1st Gen functions with Http
+  // trigger. By default https is optional for 1st Gen functions; 2nd Gen
+  // functions are https ONLY.
+  SecurityLevel security_level = 21;
+
+  // Optional. The binary authorization policy to be checked when deploying the
+  // Cloud Run service.
+  string binary_authorization_policy = 23
+      [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Configuration for a secret environment variable. It has the information
@@ -649,8 +788,8 @@ message EventTrigger {
     RETRY_POLICY_RETRY = 2;
   }
 
-  // Output only. The resource name of the Eventarc trigger. The format of this field is
-  // `projects/{project}/locations/{region}/triggers/{trigger}`.
+  // Output only. The resource name of the Eventarc trigger. The format of this
+  // field is `projects/{project}/locations/{region}/triggers/{trigger}`.
   string trigger = 1 [
     (google.api.field_behavior) = OUTPUT_ONLY,
     (google.api.resource_reference) = {
@@ -681,19 +820,18 @@ message EventTrigger {
   // will not be deleted at function deletion.
   string pubsub_topic = 5 [
     (google.api.field_behavior) = OPTIONAL,
-    (google.api.resource_reference) = {
-      type: "pubsub.googleapis.com/Topic"
-    }
+    (google.api.resource_reference) = { type: "pubsub.googleapis.com/Topic" }
   ];
 
-  // Optional. The email of the trigger's service account. The service account must have
-  // permission to invoke Cloud Run services, the permission is
+  // Optional. The email of the trigger's service account. The service account
+  // must have permission to invoke Cloud Run services, the permission is
   // `run.routes.invoke`.
   // If empty, defaults to the Compute Engine default service account:
   // `{project_number}-compute@developer.gserviceaccount.com`.
   string service_account_email = 6 [(google.api.field_behavior) = OPTIONAL];
 
-  // Optional. If unset, then defaults to ignoring failures (i.e. not retrying them).
+  // Optional. If unset, then defaults to ignoring failures (i.e. not retrying
+  // them).
   RetryPolicy retry_policy = 7 [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. The name of the channel associated with the trigger in
@@ -705,6 +843,16 @@ message EventTrigger {
       type: "eventarc.googleapis.com/Channel"
     }
   ];
+
+  // Optional. The hostname of the service that 1st Gen function should be
+  // observed.
+  //
+  // If no string is provided, the default service implementing the API will
+  // be used. For example, `storage.googleapis.com` is the default for all
+  // event types in the `google.storage` namespace.
+  //
+  // The field is only applicable to 1st Gen functions.
+  string service = 9 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Filters events based on exact matches on the CloudEvents attributes.
@@ -731,16 +879,24 @@ message GetFunctionRequest {
       type: "cloudfunctions.googleapis.com/Function"
     }
   ];
+
+  // Optional. The optional version of the 1st gen function whose details should
+  // be obtained. The version of a 1st gen function is an integer that starts
+  // from 1 and gets incremented on redeployments. GCF may keep historical
+  // configs for old versions of 1st gen function. This field can be specified
+  // to fetch the historical configs. This field is valid only for GCF 1st gen
+  // function.
+  string revision = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Request for the `ListFunctions` method.
 message ListFunctionsRequest {
-  // Required. The project and location from which the function should be listed,
-  // specified in the format `projects/*/locations/*`
-  // If you want to list functions in all locations, use "-" in place of a
-  // location. When listing functions in all locations, if one or more
-  // location(s) are unreachable, the response will contain functions from all
-  // reachable locations along with the names of any unreachable locations.
+  // Required. The project and location from which the function should be
+  // listed, specified in the format `projects/*/locations/*` If you want to
+  // list functions in all locations, use "-" in place of a location. When
+  // listing functions in all locations, if one or more location(s) are
+  // unreachable, the response will contain functions from all reachable
+  // locations along with the names of any unreachable locations.
   string parent = 1 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.resource_reference) = {
@@ -748,7 +904,10 @@ message ListFunctionsRequest {
     }
   ];
 
-  // Maximum number of functions to return per call.
+  // Maximum number of functions to return per call. The largest allowed
+  // page_size is 1,000, if the page_size is omitted or specified as greater
+  // than 1,000 then it will be replaced as 1,000. The size of the list
+  // response can be less than specified when used with filters.
   int32 page_size = 2;
 
   // The value returned by the last
@@ -783,8 +942,8 @@ message ListFunctionsResponse {
 
 // Request for the `CreateFunction` method.
 message CreateFunctionRequest {
-  // Required. The project and location in which the function should be created, specified
-  // in the format `projects/*/locations/*`
+  // Required. The project and location in which the function should be created,
+  // specified in the format `projects/*/locations/*`
   string parent = 1 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.resource_reference) = {
@@ -809,8 +968,7 @@ message UpdateFunctionRequest {
   Function function = 1 [(google.api.field_behavior) = REQUIRED];
 
   // The list of fields to be updated.
-  // If no field mask is provided, all provided fields in the request will be
-  // updated.
+  // If no field mask is provided, all fields will be updated.
   google.protobuf.FieldMask update_mask = 2;
 }
 
@@ -827,14 +985,39 @@ message DeleteFunctionRequest {
 
 // Request of `GenerateSourceUploadUrl` method.
 message GenerateUploadUrlRequest {
-  // Required. The project and location in which the Google Cloud Storage signed URL
-  // should be generated, specified in the format `projects/*/locations/*`.
+  // Required. The project and location in which the Google Cloud Storage signed
+  // URL should be generated, specified in the format `projects/*/locations/*`.
   string parent = 1 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.resource_reference) = {
       type: "locations.googleapis.com/Location"
     }
   ];
+
+  // [Preview] Resource name of a KMS crypto key (managed by the user) used to
+  // encrypt/decrypt function source code objects in intermediate Cloud Storage
+  // buckets. When you generate an upload url and upload your source code, it
+  // gets copied to an intermediate Cloud Storage bucket. The source code is
+  // then copied to a versioned directory in the sources bucket in the consumer
+  // project during the function deployment.
+  //
+  // It must match the pattern
+  // `projects/{project}/locations/{location}/keyRings/{key_ring}/cryptoKeys/{crypto_key}`.
+  //
+  // The Google Cloud Functions service account
+  // (service-{project_number}@gcf-admin-robot.iam.gserviceaccount.com) must be
+  // granted the role 'Cloud KMS CryptoKey Encrypter/Decrypter
+  // (roles/cloudkms.cryptoKeyEncrypterDecrypter)' on the
+  // Key/KeyRing/Project/Organization (least access preferred).
+  string kms_key_name = 2 [(google.api.resource_reference) = {
+    type: "cloudkms.googleapis.com/CryptoKey"
+  }];
+
+  // The function environment the generated upload url will be used for.
+  // The upload url for 2nd Gen functions can also be used for 1st gen
+  // functions, but not vice versa. If not specified, 2nd generation-style
+  // upload URLs are generated.
+  Environment environment = 3;
 }
 
 // Response of `GenerateSourceUploadUrl` method.
@@ -857,8 +1040,8 @@ message GenerateUploadUrlResponse {
 
 // Request of `GenerateDownloadUrl` method.
 message GenerateDownloadUrlRequest {
-  // Required. The name of function for which source code Google Cloud Storage signed
-  // URL should be generated.
+  // Required. The name of function for which source code Google Cloud Storage
+  // signed URL should be generated.
   string name = 1 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.resource_reference) = {
@@ -876,8 +1059,8 @@ message GenerateDownloadUrlResponse {
 
 // Request for the `ListRuntimes` method.
 message ListRuntimesRequest {
-  // Required. The project and location from which the runtimes should be listed,
-  // specified in the format `projects/*/locations/*`
+  // Required. The project and location from which the runtimes should be
+  // listed, specified in the format `projects/*/locations/*`
   string parent = 1 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.resource_reference) = {
@@ -909,6 +1092,12 @@ message ListRuntimesResponse {
 
     // The environment for the runtime.
     Environment environment = 4;
+
+    // Deprecation date for the runtime.
+    google.type.Date deprecation_date = 6;
+
+    // Decommission date for the runtime.
+    google.type.Date decommission_date = 7;
   }
 
   // The various stages that a runtime can be in.
@@ -939,6 +1128,17 @@ message ListRuntimesResponse {
   repeated Runtime runtimes = 1;
 }
 
+// Security patches are applied automatically to the runtime without requiring
+// the function to be redeployed.
+message AutomaticUpdatePolicy {}
+
+// Security patches are only applied when a function is redeployed.
+message OnDeployUpdatePolicy {
+  // Output only. contains the runtime version which was used during latest
+  // function deployment.
+  string runtime_version = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
 // Represents the metadata of the long-running operation.
 message OperationMetadata {
   // The time the operation was created.
@@ -958,7 +1158,9 @@ message OperationMetadata {
 
   // Identifies whether the user has requested cancellation
   // of the operation. Operations that have successfully been cancelled
-  // have [Operation.error][] value with a [google.rpc.Status.code][google.rpc.Status.code] of 1,
+  // have
+  // [google.longrunning.Operation.error][google.longrunning.Operation.error]
+  // value with a [google.rpc.Status.code][google.rpc.Status.code] of 1,
   // corresponding to `Code.CANCELLED`.
   bool cancel_requested = 6;
 
@@ -970,6 +1172,18 @@ message OperationMetadata {
 
   // Mechanism for reporting in-progress stages
   repeated Stage stages = 9;
+
+  // The build name of the function for create and update operations.
+  string build_name = 13;
+
+  // The operation type.
+  OperationType operation_type = 11;
+}
+
+// Extra GCF specific location information.
+message LocationMetadata {
+  // The Cloud Function environments this location supports.
+  repeated Environment environments = 1;
 }
 
 // Each Stage of the deployment process

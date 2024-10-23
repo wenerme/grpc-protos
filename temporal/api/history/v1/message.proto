@@ -28,22 +28,23 @@ option go_package = "go.temporal.io/api/history/v1;history";
 option java_package = "io.temporal.api.history.v1";
 option java_multiple_files = true;
 option java_outer_classname = "MessageProto";
-option ruby_package = "Temporal::Api::History::V1";
-option csharp_namespace = "Temporal.Api.History.V1";
+option ruby_package = "Temporalio::Api::History::V1";
+option csharp_namespace = "Temporalio.Api.History.V1";
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
-import "dependencies/gogoproto/gogo.proto";
-
 import "temporal/api/enums/v1/event_type.proto";
 import "temporal/api/enums/v1/failed_cause.proto";
+import "temporal/api/enums/v1/update.proto";
 import "temporal/api/enums/v1/workflow.proto";
 import "temporal/api/common/v1/message.proto";
 import "temporal/api/failure/v1/message.proto";
 import "temporal/api/taskqueue/v1/message.proto";
 import "temporal/api/update/v1/message.proto";
 import "temporal/api/workflow/v1/message.proto";
+import "temporal/api/sdk/v1/task_complete_metadata.proto";
+import "temporal/api/sdk/v1/user_metadata.proto";
 
 // Always the first event in workflow history
 message WorkflowExecutionStartedEventAttributes {
@@ -61,11 +62,11 @@ message WorkflowExecutionStartedEventAttributes {
     // SDK will deserialize this and provide it as arguments to the workflow function
     temporal.api.common.v1.Payloads input = 6;
     // Total workflow execution timeout including retries and continue as new.
-    google.protobuf.Duration workflow_execution_timeout = 7 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_execution_timeout = 7;
     // Timeout of a single workflow run.
-    google.protobuf.Duration workflow_run_timeout = 8 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_run_timeout = 8;
     // Timeout of a single workflow task.
-    google.protobuf.Duration workflow_task_timeout = 9 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_task_timeout = 9;
     // Run id of the previous workflow which continued-as-new or retired or cron executed into this
     // workflow.
     string continued_execution_run_id = 10;
@@ -85,12 +86,12 @@ message WorkflowExecutionStartedEventAttributes {
     int32 attempt = 18;
     // The absolute time at which the workflow will be timed out.
     // This is passed without change to the next run/retry of a workflow.
-    google.protobuf.Timestamp workflow_execution_expiration_time = 19 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp workflow_execution_expiration_time = 19;
     // If this workflow runs on a cron schedule, it will appear here
     string cron_schedule = 20;
     // For a cron workflow, this contains the amount of time between when this iteration of
     // the cron workflow was scheduled and when it should run next per its cron_schedule.
-    google.protobuf.Duration first_workflow_task_backoff = 21 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration first_workflow_task_backoff = 21;
     temporal.api.common.v1.Memo memo = 22;
     temporal.api.common.v1.SearchAttributes search_attributes = 23;
     temporal.api.workflow.v1.ResetPoints prev_auto_reset_points = 24;
@@ -99,6 +100,35 @@ message WorkflowExecutionStartedEventAttributes {
     // It should be used together with parent_initiated_event_id to identify
     // a child initiated event for global namespace
     int64 parent_initiated_event_version = 26;
+    // This field is new in 1.21.
+    string workflow_id = 28;
+    // If this workflow intends to use anything other than the current overall default version for
+    // the queue, then we include it here.
+    // Deprecated. use `inherited_build_id` instead
+    temporal.api.common.v1.WorkerVersionStamp source_version_stamp = 29;
+    // Completion callbacks attached when this workflow was started.
+    repeated temporal.api.common.v1.Callback completion_callbacks = 30;
+
+    // Contains information about the root workflow execution.
+    // The root workflow execution is defined as follows:
+    // 1. A workflow without parent workflow is its own root workflow.
+    // 2. A workflow that has a parent workflow has the same root workflow as its parent workflow.
+    // Note: workflows continued as new or reseted may or may not have parents, check examples below.
+    //
+    // Examples:
+    //   Scenario 1: Workflow W1 starts child workflow W2, and W2 starts child workflow W3.
+    //     - The root workflow of all three workflows is W1.
+    //   Scenario 2: Workflow W1 starts child workflow W2, and W2 continued as new W3.
+    //     - The root workflow of all three workflows is W1.
+    //   Scenario 3: Workflow W1 continued as new W2.
+    //     - The root workflow of W1 is W1 and the root workflow of W2 is W2.
+    //   Scenario 4: Workflow W1 starts child workflow W2, and W2 is reseted, creating W3
+    //     - The root workflow of all three workflows is W1.
+    //   Scenario 5: Workflow W1 is reseted, creating W2.
+    //     - The root workflow of W1 is W1 and the root workflow of W2 is W2.
+    temporal.api.common.v1.WorkflowExecution root_workflow_execution = 31;
+    // When present, this execution is assigned to the build ID of its parent or previous execution.
+    string inherited_build_id = 32;
 }
 
 message WorkflowExecutionCompletedEventAttributes {
@@ -133,13 +163,13 @@ message WorkflowExecutionContinuedAsNewEventAttributes {
     temporal.api.taskqueue.v1.TaskQueue task_queue = 3;
     temporal.api.common.v1.Payloads input = 4;
     // Timeout of a single workflow run.
-    google.protobuf.Duration workflow_run_timeout = 5 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_run_timeout = 5;
     // Timeout of a single workflow task.
-    google.protobuf.Duration workflow_task_timeout = 6 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_task_timeout = 6;
     // The `WORKFLOW_TASK_COMPLETED` event which this command was reported with
     int64 workflow_task_completed_event_id = 7;
     // TODO: How and is this used?
-    google.protobuf.Duration backoff_start_interval = 8 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration backoff_start_interval = 8;
     temporal.api.enums.v1.ContinueAsNewInitiator initiator = 9;
     // TODO: David are these right?
     // Deprecated. If a workflow's retry policy would cause a new run to start when the current one
@@ -151,6 +181,9 @@ message WorkflowExecutionContinuedAsNewEventAttributes {
     temporal.api.common.v1.Header header = 12;
     temporal.api.common.v1.Memo memo = 13;
     temporal.api.common.v1.SearchAttributes search_attributes = 14;
+    // If this is set, the new execution inherits the Build ID of the current execution. Otherwise,
+    // the assignment rules will be used to independently assign a Build ID to the new execution.
+    bool inherit_build_id = 15;
 
     // workflow_execution_timeout is omitted as it shouldn't be overridden from within a workflow.
 }
@@ -162,7 +195,7 @@ message WorkflowTaskScheduledEventAttributes {
     //
     // (-- api-linter: core::0140::prepositions=disabled
     //     aip.dev/not-precedent: "to" is used to indicate interval. --)
-    google.protobuf.Duration start_to_close_timeout = 2 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration start_to_close_timeout = 2;
     // Starting at 1, how many attempts there have been to complete this task
     int32 attempt = 3;
 }
@@ -181,6 +214,11 @@ message WorkflowTaskStartedEventAttributes {
     // continue-as-new regardless of the suggestion. Note that history event count is
     // just the event id of this event, so we don't include it explicitly here.
     int64 history_size_bytes = 5;
+    // Version info of the worker to whom this task was dispatched.
+    temporal.api.common.v1.WorkerVersionStamp worker_version = 6;
+    // Used by server internally to properly reapply build ID redirects to an execution
+    // when rebuilding it from events.
+    int64 build_id_redirect_counter = 7;
 }
 
 message WorkflowTaskCompletedEventAttributes {
@@ -192,6 +230,17 @@ message WorkflowTaskCompletedEventAttributes {
     string identity = 3;
     // Binary ID of the worker who completed this task
     string binary_checksum = 4;
+    // Version info of the worker who processed this workflow task. If present, the `build_id` field
+    // within is also used as `binary_checksum`, which may be omitted in that case (it may also be
+    // populated to preserve compatibility).
+    // Deprecated. Use the info inside the corresponding WorkflowTaskStartedEvent
+    temporal.api.common.v1.WorkerVersionStamp worker_version = 5;
+    // Data the SDK wishes to record for itself, but server need not interpret, and does not
+    // directly impact workflow state.
+    temporal.api.sdk.v1.WorkflowTaskCompletedMetadata sdk_metadata = 6;
+
+    // Local usage data sent during workflow task completion and recorded here for posterity
+    temporal.api.common.v1.MeteringMetadata metering_metadata = 13;
 }
 
 message WorkflowTaskTimedOutEventAttributes {
@@ -218,8 +267,14 @@ message WorkflowTaskFailedEventAttributes {
     string new_run_id = 7;
     // TODO: ?
     int64 fork_event_version = 8;
-    // If a worker explicitly failed this task, it's binary id
+    // DEPRECATED since 1.21 - use `worker_version` instead.
+    // If a worker explicitly failed this task, its binary id
     string binary_checksum = 9;
+    // Version info of the worker who processed this workflow task. If present, the `build_id` field
+    // within is also used as `binary_checksum`, which may be omitted in that case (it may also be
+    // populated to preserve compatibility).
+    // Deprecated. Use the info inside the corresponding WorkflowTaskStartedEvent
+    temporal.api.common.v1.WorkerVersionStamp worker_version = 10;
 }
 
 message ActivityTaskScheduledEventAttributes {
@@ -236,7 +291,7 @@ message ActivityTaskScheduledEventAttributes {
     //
     // (-- api-linter: core::0140::prepositions=disabled
     //     aip.dev/not-precedent: "to" is used to indicate interval. --)
-    google.protobuf.Duration schedule_to_close_timeout = 7 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration schedule_to_close_timeout = 7;
     // Limits time an activity task can stay in a task queue before a worker picks it up. This
     // timeout is always non retryable, as all a retry would achieve is to put it back into the same
     // queue. Defaults to `schedule_to_close_timeout` or workflow execution timeout if not
@@ -244,22 +299,25 @@ message ActivityTaskScheduledEventAttributes {
     //
     // (-- api-linter: core::0140::prepositions=disabled
     //     aip.dev/not-precedent: "to" is used to indicate interval. --)
-    google.protobuf.Duration schedule_to_start_timeout = 8 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration schedule_to_start_timeout = 8;
     // Maximum time an activity is allowed to execute after being picked up by a worker. This
     // timeout is always retryable. Either this or `schedule_to_close_timeout` must be
     // specified.
     //
     // (-- api-linter: core::0140::prepositions=disabled
     //     aip.dev/not-precedent: "to" is used to indicate interval. --)
-    google.protobuf.Duration start_to_close_timeout = 9 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration start_to_close_timeout = 9;
     // Maximum permitted time between successful worker heartbeats.
-    google.protobuf.Duration heartbeat_timeout = 10 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration heartbeat_timeout = 10;
     // The `WORKFLOW_TASK_COMPLETED` event which this command was reported with
     int64 workflow_task_completed_event_id = 11;
     // Activities are assigned a default retry policy controlled by the service's dynamic
     // configuration. Retries will happen up to `schedule_to_close_timeout`. To disable retries set
     // retry_policy.maximum_attempts to 1.
     temporal.api.common.v1.RetryPolicy retry_policy = 12;
+    // If this is set, the activity would be assigned to the Build ID of the workflow. Otherwise,
+    // Assignment rules of the activity's Task Queue will be used to determine the Build ID.
+    bool use_workflow_build_id = 13;
 }
 
 message ActivityTaskStartedEventAttributes {
@@ -274,6 +332,11 @@ message ActivityTaskStartedEventAttributes {
     // Will be set to the most recent failure details, if this task has previously failed and then
     // been retried.
     temporal.api.failure.v1.Failure last_failure = 5;
+    // Version info of the worker to whom this task was dispatched.
+    temporal.api.common.v1.WorkerVersionStamp worker_version = 6;
+    // Used by server internally to properly reapply build ID redirects to an execution
+    // when rebuilding it from events.
+    int64 build_id_redirect_counter = 7;
 }
 
 message ActivityTaskCompletedEventAttributes {
@@ -285,6 +348,9 @@ message ActivityTaskCompletedEventAttributes {
     int64 started_event_id = 3;
     // id of the worker that completed this task
     string identity = 4;
+    // Version info of the worker who processed this workflow task.
+    // Deprecated. Use the info inside the corresponding ActivityTaskStartedEvent
+    temporal.api.common.v1.WorkerVersionStamp worker_version = 5;
 }
 
 message ActivityTaskFailedEventAttributes {
@@ -297,6 +363,9 @@ message ActivityTaskFailedEventAttributes {
     // id of the worker that failed this task
     string identity = 4;
     temporal.api.enums.v1.RetryState retry_state = 5;
+    // Version info of the worker who processed this workflow task.
+    // Deprecated. Use the info inside the corresponding ActivityTaskStartedEvent
+    temporal.api.common.v1.WorkerVersionStamp worker_version = 6;
 }
 
 message ActivityTaskTimedOutEventAttributes {
@@ -329,6 +398,9 @@ message ActivityTaskCanceledEventAttributes {
     int64 started_event_id = 4;
     // id of the worker who canceled this activity
     string identity = 5;
+    // Version info of the worker who processed this workflow task.
+    // Deprecated. Use the info inside the corresponding ActivityTaskStartedEvent
+    temporal.api.common.v1.WorkerVersionStamp worker_version = 6;
 }
 
 message TimerStartedEventAttributes {
@@ -338,7 +410,7 @@ message TimerStartedEventAttributes {
     //
     // (-- api-linter: core::0140::prepositions=disabled
     //     aip.dev/not-precedent: "to" is used to indicate interval. --)
-    google.protobuf.Duration start_to_fire_timeout = 2 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration start_to_fire_timeout = 2;
     // The `WORKFLOW_TASK_COMPLETED` event which this command was reported with
     int64 workflow_task_completed_event_id = 3;
 }
@@ -400,6 +472,10 @@ message WorkflowExecutionSignaledEventAttributes {
     // Headers that were passed by the sender of the signal and copied by temporal 
     // server into the workflow task.
     temporal.api.common.v1.Header header = 4;
+    // Indicates the signal did not generate a new workflow task when received.
+    bool skip_generate_workflow_task = 5;
+    // When signal origin is a workflow execution, this field is set.
+    temporal.api.common.v1.WorkflowExecution external_workflow_execution = 6;
 }
 
 message WorkflowExecutionTerminatedEventAttributes {
@@ -506,6 +582,15 @@ message UpsertWorkflowSearchAttributesEventAttributes {
     temporal.api.common.v1.SearchAttributes search_attributes = 2;
 }
 
+message WorkflowPropertiesModifiedEventAttributes {
+    // The `WORKFLOW_TASK_COMPLETED` event which this command was reported with
+    int64 workflow_task_completed_event_id = 1;
+    // If set, update the workflow memo with the provided values. The values will be merged with
+    // the existing memo. If the user wants to delete values, a default/empty Payload should be
+    // used as the value for the key being deleted.
+    temporal.api.common.v1.Memo upserted_memo = 2;
+}
+
 message StartChildWorkflowExecutionInitiatedEventAttributes {
     // Namespace of the child workflow.
     // SDKs and UI tools should use `namespace` field but server must use `namespace_id` only.
@@ -516,11 +601,11 @@ message StartChildWorkflowExecutionInitiatedEventAttributes {
     temporal.api.taskqueue.v1.TaskQueue task_queue = 4;
     temporal.api.common.v1.Payloads input = 5;
     // Total workflow execution timeout including retries and continue as new.
-    google.protobuf.Duration workflow_execution_timeout = 6 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_execution_timeout = 6;
     // Timeout of a single workflow run.
-    google.protobuf.Duration workflow_run_timeout = 7 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_run_timeout = 7;
     // Timeout of a single workflow task.
-    google.protobuf.Duration workflow_task_timeout = 8 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_task_timeout = 8;
     // Default: PARENT_CLOSE_POLICY_TERMINATE.
     temporal.api.enums.v1.ParentClosePolicy parent_close_policy = 9;
     // Deprecated
@@ -535,6 +620,9 @@ message StartChildWorkflowExecutionInitiatedEventAttributes {
     temporal.api.common.v1.Header header = 15;
     temporal.api.common.v1.Memo memo = 16;
     temporal.api.common.v1.SearchAttributes search_attributes = 17;
+    // If this is set, the child workflow inherits the Build ID of the parent. Otherwise, the assignment
+    // rules of the child's Task Queue will be used to independently assign a Build ID to it.
+    bool inherit_build_id = 19;
 }
 
 message StartChildWorkflowExecutionFailedEventAttributes {
@@ -635,25 +723,178 @@ message ChildWorkflowExecutionTerminatedEventAttributes {
     int64 started_event_id = 5;
 }
 
-message UpdateWorkflowRequestedEventAttributes {
-    temporal.api.common.v1.Header header = 1;
-    string request_id = 2;
-    string update_id = 3;
-    temporal.api.update.v1.WorkflowUpdate update = 4;
+message WorkflowPropertiesModifiedExternallyEventAttributes {
+    // If set to a nonempty string, future workflow tasks for this workflow shall be dispatched on
+    // the provided queue.
+    string new_task_queue = 1;
+    // If set, update the workflow task timeout to this value.
+    google.protobuf.Duration new_workflow_task_timeout = 2;
+    // If set, update the workflow run timeout to this value. May be set to 0 for no timeout.
+    google.protobuf.Duration new_workflow_run_timeout = 3;
+    // If set, update the workflow execution timeout to this value. May be set to 0 for no timeout.
+    google.protobuf.Duration new_workflow_execution_timeout = 4;
+    // If set, update the workflow memo with the provided values. The values will be merged with
+    // the existing memo. If the user wants to delete values, a default/empty Payload should be
+    // used as the value for the key being deleted.
+    temporal.api.common.v1.Memo upserted_memo = 5;
 }
 
-message UpdateWorkflowAcceptedEventAttributes {
-    temporal.api.common.v1.Header header = 1;
-    string update_id = 2;
+message ActivityPropertiesModifiedExternallyEventAttributes {
+    // The id of the `ACTIVITY_TASK_SCHEDULED` event this modification corresponds to.
+    int64 scheduled_event_id = 1;
+    // If set, update the retry policy of the activity, replacing it with the specified one.
+    // The number of attempts at the activity is preserved.
+    temporal.api.common.v1.RetryPolicy new_retry_policy = 2;
 }
 
-message UpdateWorkflowCompletedEventAttributes {
-    temporal.api.common.v1.Header header = 1;
-    string update_id = 3;
-    oneof result {
-        temporal.api.common.v1.Payloads success = 4;
-        temporal.api.failure.v1.Failure failure = 5;
-    }
+message WorkflowExecutionUpdateAcceptedEventAttributes {
+    // The instance ID of the update protocol that generated this event.
+    string protocol_instance_id = 1;
+    // The message ID of the original request message that initiated this
+    // update. Needed so that the worker can recreate and deliver that same
+    // message as part of replay.
+    string accepted_request_message_id = 2;
+    // The event ID used to sequence the original request message.
+    int64 accepted_request_sequencing_event_id = 3;
+    // The message payload of the original request message that initiated this
+    // update.
+    temporal.api.update.v1.Request accepted_request = 4;
+}
+
+message WorkflowExecutionUpdateCompletedEventAttributes {
+    // The metadata about this update.
+    temporal.api.update.v1.Meta meta = 1;
+
+    // The event ID indicating the acceptance of this update.
+    int64 accepted_event_id = 3;
+
+    // The outcome of executing the workflow update function.
+    temporal.api.update.v1.Outcome outcome = 2;
+}
+
+message WorkflowExecutionUpdateRejectedEventAttributes {
+    // The instance ID of the update protocol that generated this event.
+    string protocol_instance_id = 1;
+    // The message ID of the original request message that initiated this
+    // update. Needed so that the worker can recreate and deliver that same
+    // message as part of replay.
+    string rejected_request_message_id = 2;
+    // The event ID used to sequence the original request message.
+    int64 rejected_request_sequencing_event_id = 3;
+    // The message payload of the original request message that initiated this
+    // update.
+    temporal.api.update.v1.Request rejected_request = 4;
+    // The cause of rejection.
+    temporal.api.failure.v1.Failure failure = 5;
+}
+
+message WorkflowExecutionUpdateAdmittedEventAttributes {
+    // The update request associated with this event.
+    temporal.api.update.v1.Request request = 1;
+    // An explanation of why this event was written to history.
+    temporal.api.enums.v1.UpdateAdmittedEventOrigin origin = 2;
+}
+
+// Event marking that an operation was scheduled by a workflow via the ScheduleNexusOperation command.
+message NexusOperationScheduledEventAttributes {
+    // Endpoint name, must exist in the endpoint registry.
+    string endpoint = 1;
+    // Service name.
+    string service = 2;
+    // Operation name.
+    string operation = 3;
+    // Input for the operation. The server converts this into Nexus request content and the appropriate content headers
+    // internally when sending the StartOperation request. On the handler side, if it is also backed by Temporal, the
+    // content is transformed back to the original Payload stored in this event.
+    temporal.api.common.v1.Payload input = 4;
+    // Schedule-to-close timeout for this operation.
+    // Indicates how long the caller is willing to wait for operation completion.
+    // Calls are retried internally by the server.
+    // (-- api-linter: core::0140::prepositions=disabled
+    //     aip.dev/not-precedent: "to" is used to indicate interval. --)
+    google.protobuf.Duration schedule_to_close_timeout = 5;
+    // Header to attach to the Nexus request. Note these headers are not the same as Temporal headers on internal
+    // activities and child workflows, these are transmitted to Nexus operations that may be external and are not
+    // traditional payloads.
+    map<string, string> nexus_header = 6;
+    // The `WORKFLOW_TASK_COMPLETED` event that the corresponding ScheduleNexusOperation command was reported with.
+    int64 workflow_task_completed_event_id = 7;
+    // A unique ID generated by the history service upon creation of this event.
+    // The ID will be transmitted with all nexus StartOperation requests and is used as an idempotentency key.
+    string request_id = 8;
+
+    // Endpoint ID as resolved in the endpoint registry at the time this event was generated.
+    // This is stored on the event and used internally by the server in case the endpoint is renamed from the time the
+    // event was originally scheduled.
+    string endpoint_id = 9;
+}
+
+// Event marking an asynchronous operation was started by the responding Nexus handler.
+// If the operation completes synchronously, this event is not generated.
+// In rare situations, such as request timeouts, the service may fail to record the actual start time and will fabricate
+// this event upon receiving the operation completion via callback.
+message NexusOperationStartedEventAttributes {
+    // The ID of the `NEXUS_OPERATION_SCHEDULED` event this task corresponds to.
+    int64 scheduled_event_id = 1;
+    // The operation ID returned by the Nexus handler in the response to the StartOperation request.
+    // This ID is used when canceling the operation.
+    string operation_id = 3;
+
+    // The request ID allocated at schedule time.
+    string request_id = 4;
+}
+
+// Nexus operation completed successfully.
+message NexusOperationCompletedEventAttributes {
+    // The ID of the `NEXUS_OPERATION_SCHEDULED` event. Uniquely identifies this operation.
+    int64 scheduled_event_id = 1;
+    // Serialized result of the Nexus operation. The response of the Nexus handler.
+    // Delivered either via a completion callback or as a response to a synchronous operation.
+    temporal.api.common.v1.Payload result = 2;
+
+    // The request ID allocated at schedule time.
+    string request_id = 3;
+}
+
+// Nexus operation failed.
+message NexusOperationFailedEventAttributes {
+    // The ID of the `NEXUS_OPERATION_SCHEDULED` event. Uniquely identifies this operation.
+    int64 scheduled_event_id = 1;
+    // Failure details. A NexusOperationFailureInfo wrapping an ApplicationFailureInfo.
+    temporal.api.failure.v1.Failure failure = 2;
+
+    // The request ID allocated at schedule time.
+    string request_id = 3;
+}
+
+// Nexus operation timed out.
+message NexusOperationTimedOutEventAttributes {
+    // The ID of the `NEXUS_OPERATION_SCHEDULED` event. Uniquely identifies this operation.
+    int64 scheduled_event_id = 1;
+    // Failure details. A NexusOperationFailureInfo wrapping a CanceledFailureInfo.
+    temporal.api.failure.v1.Failure failure = 2;
+
+    // The request ID allocated at schedule time.
+    string request_id = 3;
+}
+
+// Nexus operation completed as canceled. May or may not have been due to a cancellation request by the workflow.
+message NexusOperationCanceledEventAttributes {
+    // The ID of the `NEXUS_OPERATION_SCHEDULED` event. Uniquely identifies this operation.
+    int64 scheduled_event_id = 1;
+    // Cancellation details.
+    temporal.api.failure.v1.Failure failure = 2;
+
+    // The request ID allocated at schedule time.
+    string request_id = 3;
+}
+
+message NexusOperationCancelRequestedEventAttributes {
+    // The id of the `NEXUS_OPERATION_SCHEDULED` event this cancel request corresponds to.
+    int64 scheduled_event_id = 1;
+    // The `WORKFLOW_TASK_COMPLETED` event that the corresponding RequestCancelNexusOperation command was reported
+    // with.
+    int64 workflow_task_completed_event_id = 2;
 }
 
 // History events are the method by which Temporal SDKs advance (or recreate) workflow state.
@@ -661,12 +902,28 @@ message UpdateWorkflowCompletedEventAttributes {
 message HistoryEvent {
     // Monotonically increasing event number, starts at 1.
     int64 event_id = 1;
-    google.protobuf.Timestamp event_time = 2 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp event_time = 2;
     temporal.api.enums.v1.EventType event_type = 3;
     // TODO: What is this? Appears unused by SDKs
     int64 version = 4;
     // TODO: What is this? Appears unused by SDKs
     int64 task_id = 5;
+    // Set to true when the SDK may ignore the event as it does not impact workflow state or
+    // information in any way that the SDK need be concerned with. If an SDK encounters an event
+    // type which it does not understand, it must error unless this is true. If it is true, it's
+    // acceptable for the event type and/or attributes to be uninterpretable.
+    bool worker_may_ignore = 300;
+    // Metadata on the event. This is often carried over from commands and client calls. Most events
+    // won't have this information, and how this information is used is dependent upon the interface
+    // that reads it.
+    //
+    // Current well-known uses:
+    //  * workflow_execution_started_event_attributes - summary and details from start workflow.
+    //  * timer_started_event_attributes - summary represents an identifier for the timer for use by
+    //    user interfaces.
+    temporal.api.sdk.v1.UserMetadata user_metadata = 301;
+    // Links associated with the event.
+    repeated temporal.api.common.v1.Link links = 302;
     // The event details. The type must match that in `event_type`.
     oneof attributes {
         WorkflowExecutionStartedEventAttributes workflow_execution_started_event_attributes = 6;
@@ -709,9 +966,20 @@ message HistoryEvent {
         SignalExternalWorkflowExecutionFailedEventAttributes signal_external_workflow_execution_failed_event_attributes = 43;
         ExternalWorkflowExecutionSignaledEventAttributes external_workflow_execution_signaled_event_attributes = 44;
         UpsertWorkflowSearchAttributesEventAttributes upsert_workflow_search_attributes_event_attributes = 45;
-        UpdateWorkflowRequestedEventAttributes update_workflow_requested_event_attributes = 46;
-        UpdateWorkflowAcceptedEventAttributes update_workflow_accepted_event_attributes = 47;
-        UpdateWorkflowCompletedEventAttributes update_workflow_completed_event_attributes = 48;
+        WorkflowExecutionUpdateAcceptedEventAttributes workflow_execution_update_accepted_event_attributes = 46;
+        WorkflowExecutionUpdateRejectedEventAttributes workflow_execution_update_rejected_event_attributes = 47;
+        WorkflowExecutionUpdateCompletedEventAttributes workflow_execution_update_completed_event_attributes = 48;
+        WorkflowPropertiesModifiedExternallyEventAttributes workflow_properties_modified_externally_event_attributes = 49;
+        ActivityPropertiesModifiedExternallyEventAttributes activity_properties_modified_externally_event_attributes = 50;
+        WorkflowPropertiesModifiedEventAttributes workflow_properties_modified_event_attributes = 51;
+        WorkflowExecutionUpdateAdmittedEventAttributes workflow_execution_update_admitted_event_attributes = 52;
+        NexusOperationScheduledEventAttributes nexus_operation_scheduled_event_attributes = 53;
+        NexusOperationStartedEventAttributes nexus_operation_started_event_attributes = 54;
+        NexusOperationCompletedEventAttributes nexus_operation_completed_event_attributes = 55;
+        NexusOperationFailedEventAttributes nexus_operation_failed_event_attributes = 56;
+        NexusOperationCanceledEventAttributes nexus_operation_canceled_event_attributes = 57;
+        NexusOperationTimedOutEventAttributes nexus_operation_timed_out_event_attributes = 58;
+        NexusOperationCancelRequestedEventAttributes nexus_operation_cancel_requested_event_attributes = 59;
     }
 }
 

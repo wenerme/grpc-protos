@@ -1,55 +1,35 @@
 syntax = "proto3";
 
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
-import "protoc-gen-openapiv2/options/annotations.proto";
-
 package flipt;
 
-option go_package = "github.com/markphelps/flipt/rpc/flipt/flipt";
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "gnostic/openapi/v3/annotations.proto";
 
-option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
-  info: {
-    title: "Flipt API";
-    version: "latest";
-    contact: {
-      name: "Mark Phelps";
-      url: "https://github.com/markphelps/flipt";
-    };
-  };
-  external_docs: {
-    url: "https://flipt.io";
-    description: "Flipt Docs";
-  }
-  schemes: HTTP;
-  schemes: HTTPS;
-  consumes: "application/json";
-  produces: "application/json";
-};
+option go_package = "go.flipt.io/flipt/rpc/flipt";
 
 message EvaluationRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["flag_key", "entity_id"]
-    }
-  };
-
   string request_id = 1;
   string flag_key = 2;
   string entity_id = 3;
   map<string, string> context = 4;
+  string namespace_key = 5;
 }
 
 message BatchEvaluationRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["requests"]
-    }
-  };
-
   string request_id = 1;
   repeated EvaluationRequest requests = 2;
   bool exclude_not_found = 3;
+  string namespace_key = 4;
+}
+
+message BatchEvaluationResponse {
+  string request_id = 1;
+  repeated EvaluationResponse responses = 2;
+  double request_duration_millis = 3;
 }
 
 message EvaluationResponse {
@@ -58,17 +38,71 @@ message EvaluationResponse {
   map<string, string> request_context = 3;
   bool match = 4;
   string flag_key = 5;
-  string segment_key = 6;
+  string segment_key = 6 [deprecated = true];
   google.protobuf.Timestamp timestamp = 7;
   string value = 8;
   double request_duration_millis = 9;
   string attachment = 10;
+  EvaluationReason reason = 11;
+  string namespace_key = 12;
+  repeated string segment_keys = 13;
 }
 
-message BatchEvaluationResponse {
-  string request_id = 1;
-  repeated EvaluationResponse responses = 2;
-  double request_duration_millis = 3;
+enum EvaluationReason {
+  UNKNOWN_EVALUATION_REASON = 0;
+  FLAG_DISABLED_EVALUATION_REASON = 1;
+  FLAG_NOT_FOUND_EVALUATION_REASON = 2;
+  MATCH_EVALUATION_REASON = 3;
+  ERROR_EVALUATION_REASON = 4;
+  DEFAULT_EVALUATION_REASON = 5;
+}
+
+message Namespace {
+  string key = 1;
+  string name = 2;
+  string description = 3;
+  bool protected = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message NamespaceList {
+  repeated Namespace namespaces = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message GetNamespaceRequest {
+  string key = 1;
+  string reference = 2;
+}
+
+message ListNamespaceRequest {
+  int32 limit = 1;
+  int32 offset = 2 [deprecated = true];
+  string page_token = 3;
+  string reference = 4;
+}
+
+message CreateNamespaceRequest {
+  string key = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  string description = 3;
+}
+
+message UpdateNamespaceRequest {
+  string key = 1;
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  string description = 3;
+}
+
+message DeleteNamespaceRequest {
+  string key = 1;
+}
+
+enum FlagType {
+  VARIANT_FLAG_TYPE = 0;
+  BOOLEAN_FLAG_TYPE = 1;
 }
 
 message Flag {
@@ -79,61 +113,55 @@ message Flag {
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
   repeated Variant variants = 7;
-}
+  string namespace_key = 8;
+  FlagType type = 9;
+  optional Variant default_variant = 10;
+  optional google.protobuf.Struct metadata = 11;
+ }
 
 message FlagList {
   repeated Flag flags = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
 }
 
 message GetFlagRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["key"]
-    }
-  };
-
   string key = 1;
+  string namespace_key = 2;
+  string reference = 3;
 }
 
 message ListFlagRequest {
   int32 limit = 1;
-  int32 offset = 2;
+  int32 offset = 2 [deprecated = true];
+  string page_token = 3;
+  string namespace_key = 4;
+  string reference = 5;
 }
 
 message CreateFlagRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["key", "name"]
-    }
-  };
-
-  string key = 1;
-  string name = 2;
+  string key = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
   string description = 3;
   bool enabled = 4;
+  string namespace_key = 5;
+  FlagType type = 6 [(google.api.field_behavior) = REQUIRED];
+  optional google.protobuf.Struct metadata = 7;
 }
 
 message UpdateFlagRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["key", "name"]
-    }
-  };
-
   string key = 1;
-  string name = 2;
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
   string description = 3;
   bool enabled = 4;
+  string namespace_key = 5;
+  string default_variant_id = 6;
+  optional google.protobuf.Struct metadata = 7;
 }
 
 message DeleteFlagRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["key"]
-    }
-  };
-
   string key = 1;
+  string namespace_key = 2;
 }
 
 message Variant {
@@ -145,46 +173,32 @@ message Variant {
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
   string attachment = 8;
+  string namespace_key = 9;
 }
 
 message CreateVariantRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["flag_key", "key"]
-    }
-  };
-
   string flag_key = 1;
-  string key = 2;
+  string key = 2 [(google.api.field_behavior) = REQUIRED];
   string name = 3;
   string description = 4;
   string attachment = 5;
+  string namespace_key = 6;
 }
 
 message UpdateVariantRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["id", "flag_key", "key"]
-    }
-  };
-
   string id = 1;
   string flag_key = 2;
-  string key = 3;
+  string key = 3 [(google.api.field_behavior) = REQUIRED];
   string name = 4;
   string description = 5;
   string attachment = 6;
+  string namespace_key = 7;
 }
 
 message DeleteVariantRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["id", "flag_key"]
-    }
-  };
-
   string id = 1;
   string flag_key = 2;
+  string namespace_key = 3;
 }
 
 enum MatchType {
@@ -200,61 +214,48 @@ message Segment {
   google.protobuf.Timestamp updated_at = 5;
   repeated Constraint constraints = 6;
   MatchType match_type = 7;
+  string namespace_key = 8;
 }
 
 message SegmentList {
   repeated Segment segments = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
 }
 
 message GetSegmentRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["key"]
-    }
-  };
-
   string key = 1;
+  string namespace_key = 2;
+  string reference = 3;
 }
 
 message ListSegmentRequest {
   int32 limit = 1;
-  int32 offset = 2;
+  int32 offset = 2 [deprecated = true];
+  string page_token = 3;
+  string namespace_key = 4;
+  string reference = 5;
 }
 
 message CreateSegmentRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["key", "name"]
-    }
-  };
-
-  string key = 1;
-  string name = 2;
+  string key = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
   string description = 3;
-  MatchType match_type = 4;
+  MatchType match_type = 4 [(google.api.field_behavior) = REQUIRED];
+  string namespace_key = 5;
 }
 
 message UpdateSegmentRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["key", "name"]
-    }
-  };
-
-  string key= 1;
-  string name = 2;
+  string key = 1;
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
   string description = 3;
-  MatchType match_type = 4;
+  MatchType match_type = 4 [(google.api.field_behavior) = REQUIRED];
+  string namespace_key = 5;
 }
 
 message DeleteSegmentRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["key"]
-    }
-  };
-
   string key = 1;
+  string namespace_key = 2;
 }
 
 enum ComparisonType {
@@ -262,6 +263,8 @@ enum ComparisonType {
   STRING_COMPARISON_TYPE = 1;
   NUMBER_COMPARISON_TYPE = 2;
   BOOLEAN_COMPARISON_TYPE = 3;
+  DATETIME_COMPARISON_TYPE = 4;
+  ENTITY_ID_COMPARISON_TYPE = 5;
 }
 
 message Constraint {
@@ -273,46 +276,128 @@ message Constraint {
   string value = 6;
   google.protobuf.Timestamp created_at = 7;
   google.protobuf.Timestamp updated_at = 8;
+  string namespace_key = 9;
+  string description = 10;
 }
 
 message CreateConstraintRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["segment_key", "type", "property", "operator"]
-    }
-  };
-
   string segment_key = 1;
-  ComparisonType type = 2;
-  string property = 3;
-  string operator = 4;
+  ComparisonType type = 2 [(google.api.field_behavior) = REQUIRED];
+  string property = 3 [(google.api.field_behavior) = REQUIRED];
+  string operator = 4 [(google.api.field_behavior) = REQUIRED];
   string value = 5;
+  string namespace_key = 6;
+  string description = 7;
 }
 
 message UpdateConstraintRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["id", "segment_key", "type", "property", "operator"]
-    }
-  };
-
   string id = 1;
   string segment_key = 2;
-  ComparisonType type = 3;
-  string property = 4;
-  string operator = 5;
+  ComparisonType type = 3 [(google.api.field_behavior) = REQUIRED];
+  string property = 4 [(google.api.field_behavior) = REQUIRED];
+  string operator = 5 [(google.api.field_behavior) = REQUIRED];
   string value = 6;
+  string namespace_key = 7;
+  string description = 8;
 }
 
 message DeleteConstraintRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["id", "segment_key"]
-    }
-  };
-
   string id = 1;
   string segment_key = 2;
+  string namespace_key = 3;
+}
+
+enum RolloutType {
+  UNKNOWN_ROLLOUT_TYPE = 0;
+  SEGMENT_ROLLOUT_TYPE = 1;
+  THRESHOLD_ROLLOUT_TYPE = 2;
+}
+
+enum SegmentOperator {
+  OR_SEGMENT_OPERATOR = 0;
+  AND_SEGMENT_OPERATOR = 1;
+}
+
+message Rollout {
+  string id = 1;
+  string namespace_key = 2;
+  string flag_key = 3;
+  RolloutType type = 4;
+  int32 rank = 5;
+  string description = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  oneof rule {
+    RolloutSegment segment = 20;
+    RolloutThreshold threshold = 21;
+  }
+}
+
+message RolloutSegment {
+  string segment_key = 1 [deprecated = true];
+  bool value = 2;
+  repeated string segment_keys = 3;
+  SegmentOperator segment_operator = 4;
+}
+
+message RolloutThreshold {
+  float percentage = 1;
+  bool value = 2;
+}
+
+message RolloutList {
+  repeated Rollout rules = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message ListRolloutRequest {
+  string namespace_key = 1;
+  string flag_key = 2;
+  int32 limit = 3;
+  string page_token = 4;
+  string reference = 5;
+}
+
+message GetRolloutRequest {
+  string id = 1;
+  string namespace_key = 2;
+  string flag_key = 3;
+  string reference = 4;
+}
+
+message CreateRolloutRequest {
+  string namespace_key = 1;
+  string flag_key = 2;
+  int32 rank = 3 [(google.api.field_behavior) = REQUIRED];
+  string description = 4;
+  oneof rule {
+    RolloutSegment segment = 20;
+    RolloutThreshold threshold = 21;
+  }
+}
+
+message UpdateRolloutRequest {
+  string id = 1;
+  string namespace_key = 2;
+  string flag_key = 3;
+  string description = 4;
+  oneof rule {
+    RolloutSegment segment = 20;
+    RolloutThreshold threshold = 21;
+  }
+}
+
+message DeleteRolloutRequest {
+  string id = 1;
+  string namespace_key = 2;
+  string flag_key = 3;
+}
+
+message OrderRolloutsRequest {
+  string flag_key = 1;
+  string namespace_key = 2;
+  repeated string rollout_ids = 3 [(google.api.field_behavior) = REQUIRED];
 }
 
 message Rule {
@@ -323,79 +408,61 @@ message Rule {
   int32 rank = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
+  string namespace_key = 8;
+  repeated string segment_keys = 9;
+  SegmentOperator segment_operator = 10;
 }
 
 message RuleList {
   repeated Rule rules = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
 }
 
 message ListRuleRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["flag_key"]
-    }
-  };
-
   int32 limit = 1;
-  int32 offset = 2;
+  int32 offset = 2 [deprecated = true];
   string flag_key = 3;
+  string page_token = 4;
+  string namespace_key = 5;
+  string reference = 6;
 }
 
 message GetRuleRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["id", "flag_key"]
-    }
-  };
-
   string id = 1;
   string flag_key = 2;
+  string namespace_key = 3;
+  string reference = 4;
 }
 
 message CreateRuleRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["flag_key", "segment_key", "rank"]
-    }
-  };
-
   string flag_key = 1;
-  string segment_key = 2;
-  int32 rank = 3;
+  string segment_key = 2 [deprecated = true];
+  int32 rank = 3 [(google.api.field_behavior) = REQUIRED];
+  string namespace_key = 4;
+  repeated string segment_keys = 5;
+  SegmentOperator segment_operator = 6;
 }
 
 message UpdateRuleRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["id", "flag_key", "segment_key"]
-    }
-  };
-
   string id = 1;
   string flag_key = 2;
-  string segment_key = 3;
+  string segment_key = 3 [deprecated = true];
+  string namespace_key = 4;
+  repeated string segment_keys = 5;
+  SegmentOperator segment_operator = 6;
 }
 
 message DeleteRuleRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["id", "flag_key"]
-    }
-  };
-
   string id = 1;
   string flag_key = 2;
+  string namespace_key = 3;
 }
 
 message OrderRulesRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["flag_key", "rule_ids"]
-    }
-  };
-
   string flag_key = 1;
-  repeated string rule_ids = 2;
+  repeated string rule_ids = 2 [(google.api.field_behavior) = REQUIRED];
+  string namespace_key = 3;
 }
 
 message Distribution {
@@ -408,259 +475,179 @@ message Distribution {
 }
 
 message CreateDistributionRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["flag_key", "rule_id", "variant_id", "rollout"]
-    }
-  };
-
-  string flag_key = 1; // TODO: remove before 1.0
+  string flag_key = 1;
   string rule_id = 2;
-  string variant_id = 3;
-  float rollout = 4;
+  string variant_id = 3 [(google.api.field_behavior) = REQUIRED];
+  float rollout = 4 [(google.api.field_behavior) = REQUIRED];
+  string namespace_key = 5;
 }
 
 message UpdateDistributionRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["id", "flag_key", "rule_id", "variant_id", "rollout"]
-    }
-  };
-
   string id = 1;
-  string flag_key = 2; // TODO: remove before 1.0
+  string flag_key = 2;
   string rule_id = 3;
-  string variant_id = 4;
-  float rollout = 5;
+  string variant_id = 4 [(google.api.field_behavior) = REQUIRED];
+  float rollout = 5 [(google.api.field_behavior) = REQUIRED];
+  string namespace_key = 6;
 }
 
 message DeleteDistributionRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["id", "flag_key", "rule_id", "variant_id"]
-    }
-  };
-
   string id = 1;
-  string flag_key = 2; // TODO: remove before 1.0
+  string flag_key = 2;
   string rule_id = 3;
   string variant_id = 4;
+  string namespace_key = 5;
 }
 
 service Flipt {
   rpc Evaluate(EvaluationRequest) returns (EvaluationResponse) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "evaluate";
-      description: "Evaluate";
-      tags: "evaluate";
-    };
+    option deprecated = true;
   }
-
   rpc BatchEvaluate(BatchEvaluationRequest) returns (BatchEvaluationResponse) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "batchEvaluate";
-      description: "Batch Evaluate";
-      tags: "evaluate";
-    };
+    option deprecated = true;
   }
-
+  rpc GetNamespace(GetNamespaceRequest) returns (Namespace) {
+    option (google.api.http) = {get: "/api/v1/namespaces/{key}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "getNamespace" tags: ["NamespacesService"]};
+  }
+  rpc ListNamespaces(ListNamespaceRequest) returns (NamespaceList) {
+    option (google.api.http) = {get: "/api/v1/namespaces"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "listNamespaces" tags: ["NamespacesService"]};
+  }
+  rpc CreateNamespace(CreateNamespaceRequest) returns (Namespace) {
+    option (google.api.http) = {post: "/api/v1/namespaces" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "createNamespace" tags: ["NamespacesService"]};
+  }
+  rpc UpdateNamespace(UpdateNamespaceRequest) returns (Namespace) {
+    option (google.api.http) = {put: "/api/v1/namespaces/{key}" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "updateNamespace" tags: ["NamespacesService"]};
+  }
+  rpc DeleteNamespace(DeleteNamespaceRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {delete: "/api/v1/namespaces/{key}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "deleteNamespace" tags: ["NamespacesService"]};
+  }
   rpc GetFlag(GetFlagRequest) returns (Flag) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "getFlag";
-      description: "Get Flag";
-      tags: "flags";
-    };
+    option (google.api.http) = {get: "/api/v1/namespaces/{namespace_key}/flags/{key}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "getFlag" tags: ["FlagsService"]};
   }
-
   rpc ListFlags(ListFlagRequest) returns (FlagList) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "listFlags";
-      description: "List Flags";
-      tags: "flags";
-    };
+    option (google.api.http) = {get: "/api/v1/namespaces/{namespace_key}/flags"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "listFlags" tags: ["FlagsService"]};
   }
-
   rpc CreateFlag(CreateFlagRequest) returns (Flag) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "createFlag";
-      description: "Create Flag";
-      tags: "flags";
-    };
+    option (google.api.http) = {post: "/api/v1/namespaces/{namespace_key}/flags" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "createFlag" tags: ["FlagsService"]};
   }
-
   rpc UpdateFlag(UpdateFlagRequest) returns (Flag) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "updateFlag";
-      description: "Update Flag";
-      tags: "flags";
-    };
+    option (google.api.http) = {put: "/api/v1/namespaces/{namespace_key}/flags/{key}" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "updateFlag" tags: ["FlagsService"]};
   }
-
   rpc DeleteFlag(DeleteFlagRequest) returns (google.protobuf.Empty) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "deleteFlag";
-      description: "Delete Flag";
-      tags: "flags";
-    };
+    option (google.api.http) = {delete: "/api/v1/namespaces/{namespace_key}/flags/{key}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "deleteFlag" tags: ["FlagsService"]};
   }
-
   rpc CreateVariant(CreateVariantRequest) returns (Variant) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "createVariant";
-      description: "Create Variant";
-      tags: "variants";
-    };
+    option (google.api.http) = {post: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/variants" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "createVariant" tags: ["VariantsService"]};
   }
-
   rpc UpdateVariant(UpdateVariantRequest) returns (Variant) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "updateVariant";
-      description: "Update Variant";
-      tags: "variants";
-    };
+    option (google.api.http) = {put: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/variants/{id}" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "updateVariant" tags: ["VariantsService"]};
   }
-
   rpc DeleteVariant(DeleteVariantRequest) returns (google.protobuf.Empty) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "deleteVariant";
-      description: "Delete Variant";
-      tags: "variants";
-    };
+    option (google.api.http) = {delete: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/variants/{id}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "deleteVariant" tags: ["VariantsService"]};
   }
-
   rpc GetRule(GetRuleRequest) returns (Rule) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "getRule";
-      description: "Get Rule";
-      tags: "rules";
-    };
+    option (google.api.http) = {get: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rules/{id}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "getRule" tags: ["RulesService"]};
   }
-
   rpc ListRules(ListRuleRequest) returns (RuleList) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "listRules";
-      description: "List Rules";
-      tags: "rules";
-    };
+    option (google.api.http) = {get: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rules"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "listRules" tags: ["RulesService"]};
   }
-
-  rpc OrderRules(OrderRulesRequest) returns (google.protobuf.Empty) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "orderRules";
-      description: "Order Rules";
-      tags: "rules";
-    };
-  }
-
   rpc CreateRule(CreateRuleRequest) returns (Rule) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "createRule";
-      description: "Create Rule";
-      tags: "rules";
-    };
+    option (google.api.http) = {post: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rules" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "createRule" tags: ["RulesService"]};
   }
-
   rpc UpdateRule(UpdateRuleRequest) returns (Rule) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "updateRule";
-      description: "Update Rule";
-      tags: "rules";
-    };
+    option (google.api.http) = {put: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rules/{id}" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "updateRule" tags: ["RulesService"]};
   }
-
+  rpc OrderRules(OrderRulesRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {put: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rules/order" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "orderRules" tags: ["RulesService"]};
+  }
   rpc DeleteRule(DeleteRuleRequest) returns (google.protobuf.Empty) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "deleteRule";
-      description: "Delete Rule";
-      tags: "rules";
-    };
+    option (google.api.http) = {delete: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rules/{id}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "deleteRule" tags: ["RulesService"]};
   }
-
+  rpc GetRollout(GetRolloutRequest) returns (Rollout) {
+    option (google.api.http) = {get: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rollouts/{id}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "getRollout" tags: ["RolloutsService"]};
+  }
+  rpc ListRollouts(ListRolloutRequest) returns (RolloutList) {
+    option (google.api.http) = {get: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rollouts"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "listRollouts" tags: ["RolloutsService"]};
+  }
+  rpc CreateRollout(CreateRolloutRequest) returns (Rollout) {
+    option (google.api.http) = {post: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rollouts" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "createRollout" tags: ["RolloutsService"]};
+  }
+  rpc UpdateRollout(UpdateRolloutRequest) returns (Rollout) {
+    option (google.api.http) = {put: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rollouts/{id}" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "updateRollout" tags: ["RolloutsService"]};
+  }
+  rpc DeleteRollout(DeleteRolloutRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {delete: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rollouts/{id}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "deleteRollout" tags: ["RolloutsService"]};
+  }
+  rpc OrderRollouts(OrderRolloutsRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {put: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rollouts/order" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "orderRollouts" tags: ["RolloutsService"]};
+  }
   rpc CreateDistribution(CreateDistributionRequest) returns (Distribution) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "createDistribution";
-      description: "Create Distribution";
-      tags: "distributions";
-    };
+    option (google.api.http) = {post: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rules/{rule_id}/distributions" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "createDistribution" tags: ["DistributionsService"]};
   }
-
   rpc UpdateDistribution(UpdateDistributionRequest) returns (Distribution) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "updateDistribution";
-      description: "Update Distribution";
-      tags: "distributions";
-    };
+    option (google.api.http) = {put: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rules/{rule_id}/distributions/{id}" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "updateDistribution" tags: ["DistributionsService"]};
   }
-
   rpc DeleteDistribution(DeleteDistributionRequest) returns (google.protobuf.Empty) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "deleteDistribution";
-      description: "Delete Distribution";
-      tags: "distributions";
-    };
+    option (google.api.http) = {delete: "/api/v1/namespaces/{namespace_key}/flags/{flag_key}/rules/{rule_id}/distributions/{id}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "deleteDistribution" tags: ["DistributionsService"]};
   }
-
   rpc GetSegment(GetSegmentRequest) returns (Segment) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "getSegment";
-      description: "Get Segment";
-      tags: "segments";
-    };
+    option (google.api.http) = {get: "/api/v1/namespaces/{namespace_key}/segments/{key}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "getSegment" tags: ["SegmentsService"]};
   }
-
   rpc ListSegments(ListSegmentRequest) returns (SegmentList) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "listSegments";
-      description: "List Segments";
-      tags: "segments";
-    };
+    option (google.api.http) = {get: "/api/v1/namespaces/{namespace_key}/segments"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "listSegments" tags: ["SegmentsService"]};
   }
-
   rpc CreateSegment(CreateSegmentRequest) returns (Segment) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "createSegment";
-      description: "Create Segment";
-      tags: "segments";
-    };
+    option (google.api.http) = {post: "/api/v1/namespaces/{namespace_key}/segments" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "createSegment" tags: ["SegmentsService"]};
   }
-
   rpc UpdateSegment(UpdateSegmentRequest) returns (Segment) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "updateSegment";
-      description: "Update Segment";
-      tags: "segments";
-    };
+    option (google.api.http) = {put: "/api/v1/namespaces/{namespace_key}/segments/{key}" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "updateSegment" tags: ["SegmentsService"]};
   }
-
   rpc DeleteSegment(DeleteSegmentRequest) returns (google.protobuf.Empty) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "deleteSegment";
-      description: "Delete Segment";
-      tags: "segments";
-    };
+    option (google.api.http) = {delete: "/api/v1/namespaces/{namespace_key}/segments/{key}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "deleteSegment" tags: ["SegmentsService"]};
   }
-
   rpc CreateConstraint(CreateConstraintRequest) returns (Constraint) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "createConstraint";
-      description: "Create Constraint";
-      tags: "constraints";
-    };
+    option (google.api.http) = {post: "/api/v1/namespaces/{namespace_key}/segments/{segment_key}/constraints" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "createConstraint" tags: ["ConstraintsService"]};
   }
-
   rpc UpdateConstraint(UpdateConstraintRequest) returns (Constraint) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "updateConstraint";
-      description: "Update Constraint";
-      tags: "constraints";
-    };
+    option (google.api.http) = {put: "/api/v1/namespaces/{namespace_key}/segments/{segment_key}/constraints/{id}" body: "*"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "updateConstraint" tags: ["ConstraintsService"]};
   }
-
   rpc DeleteConstraint(DeleteConstraintRequest) returns (google.protobuf.Empty) {
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "deleteConstraint";
-      description: "Delete Constraint";
-      tags: "constraints";
-    };
+    option (google.api.http) = {delete: "/api/v1/namespaces/{namespace_key}/segments/{segment_key}/constraints/{id}"};
+    option (gnostic.openapi.v3.operation) = {operation_id: "deleteConstraint" tags: ["ConstraintsService"]};
   }
 }

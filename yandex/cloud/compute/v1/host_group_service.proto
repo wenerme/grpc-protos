@@ -4,10 +4,13 @@ package yandex.cloud.compute.v1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
 
+import "yandex/cloud/access/access.proto";
 import "yandex/cloud/api/operation.proto";
 import "yandex/cloud/compute/v1/instance.proto";
 import "yandex/cloud/compute/v1/host_group.proto";
+import "yandex/cloud/compute/v1/maintenance.proto";
 import "yandex/cloud/operation/operation.proto";
 import "yandex/cloud/validation.proto";
 
@@ -68,6 +71,40 @@ service HostGroupService {
   rpc ListHosts (ListHostGroupHostsRequest) returns (ListHostGroupHostsResponse) {
     option (google.api.http) = { get: "/compute/v1/hostGroups/{host_group_id}/hosts" };
   }
+
+  // Update host
+  rpc UpdateHost (UpdateHostGroupHostRequest) returns (operation.Operation) {
+    option (google.api.http) = { patch: "/compute/v1/hostGroups/{host_group_id}/hosts/{host_id}" body: "*" };
+    option (yandex.cloud.api.operation) = {
+      metadata: "UpdateHostGroupHostMetadata"
+      response: "Host"
+    };
+  }
+
+  // access
+
+  // Lists access bindings for the host group.
+  rpc ListAccessBindings (access.ListAccessBindingsRequest) returns (access.ListAccessBindingsResponse) {
+    option (google.api.http) = { get: "/compute/v1/hostGroups/{resource_id}:listAccessBindings" };
+  }
+
+  // Sets access bindings for the host group.
+  rpc SetAccessBindings (access.SetAccessBindingsRequest) returns (operation.Operation) {
+    option (google.api.http) = { post: "/compute/v1/hostGroups/{resource_id}:setAccessBindings" body: "*" };
+    option (yandex.cloud.api.operation) = {
+      metadata: "access.SetAccessBindingsMetadata"
+      response: "access.AccessBindingsOperationResult"
+    };
+  }
+
+  // Updates access bindings for the host group.
+  rpc UpdateAccessBindings (access.UpdateAccessBindingsRequest) returns (operation.Operation) {
+    option (google.api.http) = { post: "/compute/v1/hostGroups/{resource_id}:updateAccessBindings" body: "*" };
+    option (yandex.cloud.api.operation) = {
+      metadata: "access.UpdateAccessBindingsMetadata"
+      response: "access.AccessBindingsOperationResult"
+    };
+  }
 }
 
 message GetHostGroupRequest {
@@ -93,8 +130,19 @@ message ListHostGroupsRequest {
   string page_token = 3 [(length) = "<=100"];
 
   // A filter expression that filters resources listed in the response.
-  // Currently you can use filtering only on the [HostGroup.name] field.
+  // The expression consists of one or more conditions united by `AND` operator: `<condition1> [AND <condition2> [<...> AND <conditionN>]]`.
+  //
+  // Each condition has the form `<field> <operator> <value>`, where:
+  // 1. `<field>` is the field name. Currently you can use filtering only on the limited number of fields.
+  // 2. `<operator>` is a logical operator, one of `=`, `!=`, `IN`, `NOT IN`.
+  // 3. `<value>` represents a value.
+  // String values should be written in double (`"`) or single (`'`) quotes. C-style escape sequences are supported (`\"` turns to `"`, `\'` to `'`, `\\` to backslash).
   string filter = 4 [(length) = "<=1000"];
+
+  // By which column the listing should be ordered and in which direction,
+  // format is "createdAt desc". "id asc" if omitted.
+  // The default sorting order is ascending
+  string order_by = 5 [(length) = "<=100"];
 }
 
 message ListHostGroupsResponse {
@@ -201,6 +249,13 @@ message ListHostGroupInstancesRequest {
   string page_token = 3 [(length) = "<=100"];
 
   // A filter expression that filters resources listed in the response.
+  // The expression consists of one or more conditions united by `AND` operator: `<condition1> [AND <condition2> [<...> AND <conditionN>]]`.
+  //
+  // Each condition has the form `<field> <operator> <value>`, where:
+  // 1. `<field>` is the field name. Currently you can use filtering only on the limited number of fields.
+  // 2. `<operator>` is a logical operator, one of `=`, `!=`, `IN`, `NOT IN`.
+  // 3. `<value>` represents a value.
+  // String values should be written in double (`"`) or single (`'`) quotes. C-style escape sequences are supported (`\"` turns to `"`, `\'` to `'`, `\\` to backslash).
   // Currently you can use filtering only on the [Host.id] field.
   // To get the host ID, use [HostGroupService.ListHosts] request.
   string filter = 4 [(length) = "<=1000"];
@@ -248,6 +303,29 @@ message ListHostGroupHostsResponse {
   // in the next list request. Each subsequent list request will have its own
   // [next_page_token] to continue paging through the results.
   string next_page_token = 2;
+}
+
+message UpdateHostGroupHostRequest {
+  // ID of the host group to update.
+  string host_group_id = 1 [(required) = true, (length) = "<=50"];
+
+  // ID of the host to update.
+  string host_id = 2 [(required) = true, (length) = "<=50"];
+
+  // Field mask that specifies which fields of the Host are going to be updated.
+  google.protobuf.FieldMask update_mask = 3;
+
+  // The date and time when this host will be automatically freed of instances.
+  // Timestamp in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt) text format.
+  google.protobuf.Timestamp deadline_at = 4;
+}
+
+message UpdateHostGroupHostMetadata {
+  // ID of the host group that is being updated.
+  string host_group_id = 1;
+
+  // ID of the host that is being updated.
+  string host_id = 2;
 }
 
 message ListHostGroupOperationsRequest {

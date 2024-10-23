@@ -1,5 +1,14 @@
+# - repo: ORG/REPO
+#   tags: TAGS
+#   enabled: true
+#   url:
+#   git:
+#   dir:
+#   sync:
+#     FROM/: TO/
+
 - repo: dexidp/dex
-  tags: infra
+  tags: auth
   sync:
     api/: dex/api/
 - repo: googleapis/api-common-protos
@@ -12,10 +21,15 @@
   sync:
     google/: googleapis/google/
     grafeas/: googleapis/grafeas/
+    gapic/metadata/: googleapis/gapic/metadata/
+
 - repo: google/perfetto
   tags: infra
   sync:
-    protos/: perfetto/
+    protos/perfetto/: perfetto/
+    protos/third_party: perfetto/
+    protos/README.md: perfetto/
+
 # - repo: google/gvisor
 #   tags: infra
 #   sync:
@@ -54,7 +68,7 @@
     weed/pb/: seaweedfs/
 
 - repo: envoyproxy/data-plane-api
-  tags: infra
+  tags: infra,gateway
   sync:
     envoy/: envoy/
 
@@ -64,13 +78,18 @@
     api: containerd/
 
 - repo: open-telemetry/opentelemetry-proto
-  tags: infra
+  tags: tracing,spec
   sync:
     opentelemetry/: opentelemetry/
 
+- repo: prometheus/prometheus
+  tags: tracing,plugin
+  sync:
+    prompb/: prompb/
+
 - repo: cockroachdb/cockroach
   tags: database
-  enabled: false # too large
+  enabled: false # too large to clone
   sync:
     pkg/roachpb/: cockroach/roachpb/
     pkg/sql/: cockroach/sql/
@@ -108,6 +127,11 @@
   tags: infra,kubernetes
   sync:
     pkg/apis/runtime/: kubernetes/cri/runtime/
+- repo: kubernetes/api
+  tags: infra,kubernetes
+  sync:
+    ./: k8s/io/api/
+
 
 - repo: envoyproxy/protoc-gen-validate
   tags: core
@@ -133,9 +157,161 @@
 - repo: hashicorp/consul
   tags: infra
   sync:
-    proto/: consul/proto/
+    proto-public/: consul/
+    proto/:
+      dir: consul/
+      delete: false
 
 - repo: appleboy/gorush
   tags: service
   sync:
-    rpc/proto/: gorush/proto/
+    rpc/proto/: gorush/
+
+- repo: SocialSisterYi/bilibili-API-collect
+  tags: service
+  sync:
+    grpc_api/: bilibili/
+
+- repo: flyteorg/flyte
+  tags: workflow
+  sync:
+    flyteidl/protos/flyteidl/: flyteidl/
+    flyteidl/README.md: flyteidl/
+
+- repo: adap/flower
+  tags: ai
+  sync:
+    src/proto/flwr/proto/: flower/
+
+- repo: Permify/permify
+  tags: service
+  sync:
+    proto/: permify/
+
+- repo: techschool/simplebank
+  tags: demo
+  sync:
+    proto/user.proto: simplebank/
+    proto/service_simple_bank.proto: simplebank/
+    proto/rpc_verify_email.proto: simplebank/
+    proto/rpc_update_user.proto: simplebank/
+    proto/rpc_create_user.proto: simplebank/
+    proto/rpc_login_user.proto: simplebank/
+
+- repo: camunda/camunda
+  tags: workflow
+  sync:
+    zeebe/gateway-protocol/src/main/proto/: camunda/zeebe/gateway-protocol/
+    zeebe/dynamic-config/src/main/resources/proto/: camunda/zeebe/dynamic-config/
+
+- repo: conductor-oss/conductor
+  tags: workflow
+  sync:
+    grpc/src/main/proto/: conductor/
+
+- repo: vitessio/vitess
+  tags: database
+  sync:
+    proto/: vitess/
+
+- repo: Kong/kong
+  tags: gateway
+  sync:
+    kong/include/kong/: kong/
+
+- repo: Alluxio/alluxio
+  tags: storage
+  sync:
+    common/transport/src/main/proto/: alluxio/
+
+- repo: container-storage-interface/spec
+  tags: storage,kubernetes,plugin,spec
+  sync:
+    csi.proto: csi/
+
+# Bazel
+# https://github.com/search?q=repo%3Abazelbuild%2Fbazel%20path%3A*.proto&type=code
+# chromium
+# ZIP 1.7G
+# should use the archive mode
+# https://github.com/search?q=repo%3Achromium%2Fchromium%20path%3A*.proto&type=code
+
+# - Apicurio
+# - Appwrite
+# - Argo Workflows
+# - Auth0
+# - AxonIQ
+# - Backstage
+# - Banzai Cloud
+# - BFE
+# - BuildBuddy
+# - Camunda Cloud
+# - Casbin
+# - Cerbos
+# - Cilium
+# - Clutch
+# - CockroachDB
+# - Conductor
+# - Consul
+# - CoreDNS
+# - Cortex XSOAR (Palo Alto Networks)
+# - DataStax Astra
+# - Dynatrace
+# - Envoy Proxy
+# - Etcd
+# - Fiber
+# - Finagle
+# - Flyte
+# - FusionAuth
+# - Google Cloud Services
+# - Gravitee.io
+# - HashiCorp Nomad
+# - Hasura
+# - Hazelcast
+# - Hedera Hashgraph
+# - IBM API Connect
+# - Istio
+# - Jaeger
+# - JFrog Artifactory
+# - Jina AI
+# - Keycloak
+# - Knative
+# - Kong Enterprise
+# - KrakenD
+# - KServe
+# - Kubernetes
+# - Lightbend Akka
+# - Linkerd
+# - M3
+# - Micro
+# - NATS
+# - Netlify
+# - Nexmo (Vonage API)
+# - Okteto
+# - OpenBanking Toolkit
+# - OpenTelemetry
+# - Orkes
+# - Patron
+# - Percona Monitoring and Management (PMM)
+# - Ping Identity
+# - Prometheus Remote Write
+# - Red Hat 3scale
+# - Seldon
+# - SignalFX
+# - Solo.io Gloo Edge
+# - Spiffe/Spire
+# - Spinnaker
+# - Spinnaker
+# - Stitch (MongoDB Stitch)
+# - StreamNative
+# - Temporal
+# - Temporal.io
+# - Tetrate Service Bridge
+# - Thanos
+# - Thrift
+# - Twirp
+# - Tyk Cloud
+# - Vault by HashiCorp
+# - Vitess
+# - WoltLab Suite
+# - Zitadel

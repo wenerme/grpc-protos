@@ -28,12 +28,10 @@ option (udpa.annotations.file_status).package_version_status = ACTIVE;
 // xDS API and non-xDS services version. This is used to describe both resource and transport
 // protocol versions (in distinct configuration fields).
 enum ApiVersion {
-  // When not specified, we assume v2, to ease migration to Envoy's stable API
-  // versioning. If a client does not support v2 (e.g. due to deprecation), this
-  // is an invalid value.
-  AUTO = 0 [deprecated = true, (envoy.annotations.deprecated_at_minor_version_enum) = "3.0"];
+  // When not specified, we assume v3; it is the only supported version.
+  AUTO = 0;
 
-  // Use xDS v2 API.
+  // Use xDS v2 API. This is no longer supported.
   V2 = 1 [deprecated = true, (envoy.annotations.deprecated_at_minor_version_enum) = "3.0"];
 
   // Use xDS v3 API.
@@ -152,7 +150,8 @@ message RateLimitSettings {
   google.protobuf.UInt32Value max_tokens = 1;
 
   // Rate at which tokens will be filled per second. If not set, a default fill rate of 10 tokens
-  // per second will be used.
+  // per second will be used. The minimal fill rate is once per year. Lower
+  // fill rates will be set to once per year.
   google.protobuf.DoubleValue fill_rate = 2 [(validate.rules).double = {gt: 0.0}];
 }
 
@@ -168,7 +167,7 @@ message PathConfigSource {
   //
   // .. note::
   //
-  //   If ``watched_directory`` is *not* configured, Envoy will watch the file path for *moves.*
+  //   If ``watched_directory`` is *not* configured, Envoy will watch the file path for *moves*.
   //   This is because in general only moves are atomic. The same method of swapping files as is
   //   demonstrated in the :ref:`runtime documentation <config_runtime_symbolic_link_swap>` can be
   //   used here also. If ``watched_directory`` is configured, no watch will be placed directly on
@@ -176,7 +175,7 @@ message PathConfigSource {
   //   this path. This is required in certain deployment scenarios. See below for more information.
   string path = 1 [(validate.rules).string = {min_len: 1}];
 
-  // If configured, this directory will be watched for *moves.* When an entry in this directory is
+  // If configured, this directory will be watched for *moves*. When an entry in this directory is
   // moved to, the ``path`` will be reloaded. This is required in certain deployment scenarios.
   //
   // Specifically, if trying to load an xDS resource using a
@@ -203,7 +202,7 @@ message ConfigSource {
   option (udpa.annotations.versioning).previous_message_type = "envoy.api.v2.core.ConfigSource";
 
   // Authorities that this config source may be used for. An authority specified in a xdstp:// URL
-  // is resolved to a *ConfigSource* prior to configuration fetch. This field provides the
+  // is resolved to a ``ConfigSource`` prior to configuration fetch. This field provides the
   // association between authority name and configuration source.
   // [#not-implemented-hide:]
   repeated xds.core.v3.Authority authorities = 7;

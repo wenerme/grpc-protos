@@ -41,6 +41,10 @@ message ClickhouseConfig {
     // If more than this number active parts in single partition, throw 'Too many parts ...' exception.
     google.protobuf.Int64Value parts_to_throw_insert = 4;
 
+    google.protobuf.Int64Value inactive_parts_to_delay_insert = 9;
+
+    google.protobuf.Int64Value inactive_parts_to_throw_insert = 10;
+
     // How many tasks of merging and mutating parts are allowed simultaneously in ReplicatedMergeTree queue.
     google.protobuf.Int64Value max_replicated_merges_in_queue = 5;
 
@@ -53,6 +57,81 @@ message ClickhouseConfig {
     google.protobuf.Int64Value max_bytes_to_merge_at_min_space_in_pool = 7;
 
     google.protobuf.Int64Value max_bytes_to_merge_at_max_space_in_pool = 8;
+
+    // Minimum number of bytes in a data part that can be stored in **Wide** format.
+    //
+    // More info see in [ClickHouse documentation](https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree/#min_bytes_for_wide_part).
+    google.protobuf.Int64Value min_bytes_for_wide_part = 11;
+
+    // Minimum number of rows in a data part that can be stored in **Wide** format.
+    //
+    // More info see in [ClickHouse documentation](https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree/#min_bytes_for_wide_part).
+    google.protobuf.Int64Value min_rows_for_wide_part = 12;
+
+    // Enables or disables complete dropping of data parts where all rows are expired in MergeTree tables.
+    //
+    // More info see in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/settings/settings/#ttl_only_drop_parts).
+    google.protobuf.BoolValue ttl_only_drop_parts = 13;
+
+    google.protobuf.BoolValue allow_remote_fs_zero_copy_replication = 14;
+
+	google.protobuf.Int64Value merge_with_ttl_timeout = 15;
+
+    google.protobuf.Int64Value merge_with_recompression_ttl_timeout = 16;
+
+    google.protobuf.Int64Value max_parts_in_total = 17;
+
+    google.protobuf.Int64Value max_number_of_merges_with_ttl_in_pool = 18;
+
+    google.protobuf.Int64Value cleanup_delay_period = 19;
+
+    google.protobuf.Int64Value number_of_free_entries_in_pool_to_execute_mutation = 20;
+
+	// The 'too many parts' check according to 'parts_to_delay_insert' and 'parts_to_throw_insert' will be active only if the average part size (in the relevant partition) is not larger than the specified threshold. If it is larger than the specified threshold, the INSERTs will be neither delayed or rejected. This allows to have hundreds of terabytes in a single table on a single server if the parts are successfully merged to larger parts. This does not affect the thresholds on inactive parts or total parts.
+    // Default: 1 GiB
+    // Min version: 22.10
+    // See in-depth description in [ClickHouse GitHub](https://github.com/ClickHouse/ClickHouse/blob/f9558345e886876b9132d9c018e357f7fa9b22a3/src/Storages/MergeTree/MergeTreeSettings.h#L80)
+    google.protobuf.Int64Value max_avg_part_size_for_too_many_parts = 21 [(value) = ">=0"];
+
+    // Merge parts if every part in the range is older than the value of min_age_to_force_merge_seconds.
+    // Default: 0 - disabled
+    // Min_version: 22.10
+    // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/settings/merge-tree-settings#min_age_to_force_merge_seconds)
+    google.protobuf.Int64Value min_age_to_force_merge_seconds = 22 [(value) = ">=0"];
+
+    // Whether min_age_to_force_merge_seconds should be applied only on the entire partition and not on subset.
+    // Default: false
+    // Min_version: 22.11
+    // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/settings/merge-tree-settings#min_age_to_force_merge_seconds)
+    google.protobuf.BoolValue min_age_to_force_merge_on_partition_only = 23;
+
+    // Sleep time for merge selecting when no part is selected. A lower setting triggers selecting tasks in background_schedule_pool frequently, which results in a large number of requests to ClickHouse Keeper in large-scale clusters.
+    // Default: 5000
+    // Min_version: 21.10
+    // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/settings/settings#merge_selecting_sleep_ms)
+    google.protobuf.Int64Value merge_selecting_sleep_ms = 24 [(value) = ">0"];
+
+    // The number of rows that are read from the merged parts into memory.
+    // Default: 8192
+    // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/settings/settings#merge_max_block_size)
+    google.protobuf.Int64Value merge_max_block_size = 25 [(value) = ">0"];
+
+    // Enables the check at table creation, that the data type of a column for sampling or sampling expression is correct. The data type must be one of unsigned [integer types](https://clickhouse.com/docs/en/sql-reference/data-types/int-uint): UInt8, UInt16, UInt32, UInt64.
+    // Default: true
+    // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/settings/merge-tree-settings#check_sample_column_is_correct)
+    google.protobuf.BoolValue check_sample_column_is_correct = 26;
+
+    // Maximum sleep time for merge selecting, a lower setting will trigger selecting tasks in background_schedule_pool frequently which result in large amount of requests to zookeeper in large-scale clusters.
+    // Default: 60000
+    // Min_version: 23.6
+    // See in-depth description in [ClickHouse GitHub](https://github.com/ClickHouse/ClickHouse/blob/4add9db84859bff7410cf934a3904b0414e36e51/src/Storages/MergeTree/MergeTreeSettings.h#L71)
+    google.protobuf.Int64Value max_merge_selecting_sleep_ms = 27 [(value) = ">=0"];
+
+    // Maximum period to clean old queue logs, blocks hashes and parts.
+    // Default: 300
+    // Min_version: 23.6
+    // See in-depth description in [ClickHouse GitHub](https://github.com/ClickHouse/ClickHouse/blob/4add9db84859bff7410cf934a3904b0414e36e51/src/Storages/MergeTree/MergeTreeSettings.h#L142)
+    google.protobuf.Int64Value max_cleanup_delay_period = 28 [(value) = ">=0"];
   }
 
   message Kafka {
@@ -72,10 +151,51 @@ message ClickhouseConfig {
       SASL_MECHANISM_SCRAM_SHA_512 = 4;
     }
 
+    enum Debug {
+      DEBUG_UNSPECIFIED = 0;
+      DEBUG_GENERIC = 1;
+      DEBUG_BROKER = 2;
+      DEBUG_TOPIC = 3;
+      DEBUG_METADATA = 4;
+      DEBUG_FEATURE = 5;
+      DEBUG_QUEUE = 6;
+      DEBUG_MSG = 7;
+      DEBUG_PROTOCOL = 8;
+      DEBUG_CGRP = 9;
+      DEBUG_SECURITY = 10;
+      DEBUG_FETCH = 11;
+      DEBUG_INTERCEPTOR = 12;
+      DEBUG_PLUGIN = 13;
+      DEBUG_CONSUMER = 14;
+      DEBUG_ADMIN = 15;
+      DEBUG_EOS = 16;
+      DEBUG_MOCK = 17;
+      DEBUG_ASSIGNOR = 18;
+      DEBUG_CONF = 19;
+      DEBUG_TELEMETRY = 20;
+      DEBUG_ALL = 21;
+    }
+
+    enum AutoOffsetReset {
+      AUTO_OFFSET_RESET_UNSPECIFIED = 0;
+      AUTO_OFFSET_RESET_SMALLEST = 1;
+      AUTO_OFFSET_RESET_EARLIEST = 2;
+      AUTO_OFFSET_RESET_BEGINNING = 3;
+      AUTO_OFFSET_RESET_LARGEST = 4;
+      AUTO_OFFSET_RESET_LATEST = 5;
+      AUTO_OFFSET_RESET_END = 6;
+      AUTO_OFFSET_RESET_ERROR = 7;
+    }
+
     SecurityProtocol security_protocol = 1;
     SaslMechanism sasl_mechanism = 2;
     string sasl_username = 3;
     string sasl_password = 4;
+	google.protobuf.BoolValue enable_ssl_certificate_verification = 5;
+    google.protobuf.Int64Value max_poll_interval_ms = 6 [(value) = ">=0"];
+    google.protobuf.Int64Value session_timeout_ms = 7 [(value) = ">=0"];
+    Debug debug = 8;
+    AutoOffsetReset auto_offset_reset = 9;
   }
 
   message KafkaTopic {
@@ -84,8 +204,15 @@ message ClickhouseConfig {
   }
 
   message Rabbitmq {
+
+    // [RabbitMQ](https://clickhouse.com/docs/en/engines/table-engines/integrations/rabbitmq/) username
     string username = 1;
+
+    // [RabbitMQ](https://clickhouse.com/docs/en/engines/table-engines/integrations/rabbitmq/) password
     string password = 2;
+
+    // [RabbitMQ](https://clickhouse.com/docs/en/engines/table-engines/integrations/rabbitmq/) virtual host
+    string vhost = 3;
   }
 
   message Compression {
@@ -99,7 +226,7 @@ message ClickhouseConfig {
       ZSTD = 2;
     }
 
-    // Compression method to use for the specified combination of `min_part_size` and `min_part_size_ratio`.
+    // Compression method to use for the specified combination of [min_part_size] and [min_part_size_ratio].
     Method method = 1;
 
     // Minimum size of a part of a table.
@@ -107,15 +234,25 @@ message ClickhouseConfig {
 
     // Minimum ratio of a part relative to the size of all the data in the table.
     double min_part_size_ratio = 3;
+
+	google.protobuf.Int64Value level = 4 [(value) = ">=0"];
   }
 
   message ExternalDictionary {
     message HttpSource {
+      message Header {
+        string name = 1 [(required) = true];
+        string value = 2 [(required) = true];
+      }
+
       // URL of the source dictionary available over HTTP.
       string url = 1 [(required) = true];
 
       // The data format. Valid values are all formats supported by ClickHouse SQL dialect.
       string format = 2 [(required) = true];
+
+      // HTTP headers.
+      repeated Header headers = 3;
     }
 
     message MysqlSource {
@@ -162,6 +299,12 @@ message ClickhouseConfig {
       // Query for checking the dictionary status, to pull only updated data.
       // For more details, see [ClickHouse documentation on dictionaries](https://clickhouse.com/docs/en/query_language/dicts/external_dicts_dict_lifetime/).
       string invalidate_query = 8;
+
+      // Should the connection be closed after each request.
+      google.protobuf.BoolValue close_connection = 9;
+
+      // Should a connection be shared for some requests.
+      google.protobuf.BoolValue share_connection = 10;
     }
 
     message ClickhouseSource {
@@ -172,7 +315,7 @@ message ClickhouseConfig {
       string table = 2 [(required) = true];
 
       // ClickHouse host of the specified database.
-      string host = 3 [(required) = true, (length) = "<=253"];
+      string host = 3 [(length) = "<=253"];
 
       // Port to use when connecting to the host.
       int64 port = 4 [(value) = "0-65535"];
@@ -185,6 +328,9 @@ message ClickhouseConfig {
 
       // Selection criteria for the data in the specified ClickHouse table.
       string where = 7;
+
+      // Use ssl for connection.
+      google.protobuf.BoolValue secure = 8;
     }
 
     message MongodbSource {
@@ -195,7 +341,7 @@ message ClickhouseConfig {
       string collection = 2 [(required) = true];
 
       // MongoDB host of the specified database.
-      string host = 3 [(required) = true, (length) = "<=253"];
+      string host = 3 [(length) = "<=253"];
 
       // Port to use when connecting to the host.
       int64 port = 4 [(value) = "0-65535"];
@@ -205,6 +351,8 @@ message ClickhouseConfig {
 
       // Password of the MongoDB database user.
       string password = 6;
+
+	  string options = 7;
     }
 
     message PostgresqlSource {
@@ -346,6 +494,10 @@ message ClickhouseConfig {
       // Number of cells in the cache. Rounded up to a power of two.
       // Applicable only for CACHE and COMPLEX_KEY_CACHE layout types.
       int64 size_in_cells = 2;
+
+      // Maximum dictionary key size.
+      // Applicable only for FLAT layout type.
+      int64 max_array_size = 3;
     }
 
     message Range {
@@ -405,7 +557,7 @@ message ClickhouseConfig {
     message Pattern {
       message Retention {
         // Minimum age of the data in seconds.
-        int64 age = 1 [(value) = ">0"];
+        int64 age = 1 [(value) = ">=0"];
 
         // Precision of determining the age of the data, in seconds.
         int64 precision = 2 [(value) = ">0"];
@@ -426,6 +578,57 @@ message ClickhouseConfig {
 
     // Pattern to use for the rollup.
     repeated Pattern patterns = 2 [(size) = ">0"];
+
+    // The name of the column storing the metric name (Graphite sensor).
+    // Default: Path
+    // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/ru/engines/table-engines/mergetree-family/graphitemergetree#required-columns)
+    string path_column_name = 3;
+
+    // The name of the column storing the time of measuring the metric.
+    // Default: Time
+    // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/ru/engines/table-engines/mergetree-family/graphitemergetree#required-columns)
+    string time_column_name = 4;
+
+    // The name of the column storing the value of the metric at the time set in time_column_name.
+    // Default: Value
+    // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/ru/engines/table-engines/mergetree-family/graphitemergetree#required-columns)
+    string value_column_name = 5;
+
+    // The name of the column storing the version of the metric.
+    // Default: Timestamp
+    // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/ru/engines/table-engines/mergetree-family/graphitemergetree#required-columns)
+    string version_column_name = 6;
+  }
+
+  message QueryMaskingRule {
+    // Name for the rule.
+    string name = 1;
+
+    // RE2 compatible regular expression.
+    // Required.
+    string regexp = 2 [(required) = true];
+
+    // Substitution string for sensitive data.
+    // Default: six asterisks
+    string replace = 3;
+  }
+
+  message QueryCache {
+    // The maximum cache size in bytes.
+    // Default: 1073741824 (1 GiB)
+    google.protobuf.Int64Value max_size_in_bytes = 1 [(value) = ">=0"];
+
+    // The maximum number of SELECT query results stored in the cache.
+    // Default: 1024
+    google.protobuf.Int64Value max_entries = 2 [(value) = ">=0"];
+
+    // The maximum size in bytes SELECT query results may have to be saved in the cache.
+    // Dafault: 1048576 (1 MiB)
+    google.protobuf.Int64Value max_entry_size_in_bytes = 3 [(value) = ">=0"];
+
+    // The maximum number of rows SELECT query results may have to be saved in the cache.
+    // Default: 30000000 (30 mil)
+    google.protobuf.Int64Value max_entry_size_in_rows = 4 [(value) = ">=0"];
   }
 
   // Logging level for the ClickHouse cluster. Possible values: TRACE, DEBUG, INFORMATION, WARNING, ERROR.
@@ -479,6 +682,9 @@ message ClickhouseConfig {
 
   // The server's time zone to be used in DateTime fields conversions. Specified as an IANA identifier.
   string timezone = 14;
+
+  // Enable or disable geobase.
+  google.protobuf.BoolValue geobase_enabled = 66;
 
   // Address of the archive with the user geobase in Object Storage.
   string geobase_uri = 15;
@@ -546,9 +752,126 @@ message ClickhouseConfig {
   // Logging level for text_log system table. Possible values: TRACE, DEBUG, INFORMATION, WARNING, ERROR.
   LogLevel text_log_level = 32;
 
+  // Enable or disable opentelemetry_span_log system table. Default value: false.
+  google.protobuf.BoolValue opentelemetry_span_log_enabled = 42;
+
+  // The maximum size that opentelemetry_span_log can grow to before old data will be removed. If set to 0 (default),
+  // automatic removal of opentelemetry_span_log data based on size is disabled.
+  google.protobuf.Int64Value opentelemetry_span_log_retention_size = 55 [(value) = ">=0"];
+
+  // The maximum time that opentelemetry_span_log records will be retained before removal. If set to 0,
+  // automatic removal of opentelemetry_span_log data based on time is disabled.
+  google.protobuf.Int64Value opentelemetry_span_log_retention_time = 56 [(value) = ">=0"];
+
+  // Enable or disable query_views_log system table. Default value: false.
+  google.protobuf.BoolValue query_views_log_enabled = 49;
+
+  // The maximum size that query_views_log can grow to before old data will be removed. If set to 0 (default),
+  // automatic removal of query_views_log data based on size is disabled.
+  google.protobuf.Int64Value query_views_log_retention_size = 50 [(value) = ">=0"];
+
+  // The maximum time that query_views_log records will be retained before removal. If set to 0,
+  // automatic removal of query_views_log data based on time is disabled.
+  google.protobuf.Int64Value query_views_log_retention_time = 51 [(value) = ">=0"];
+
+  // Enable or disable asynchronous_metric_log system table. Default value: false.
+  google.protobuf.BoolValue asynchronous_metric_log_enabled = 52;
+
+  // The maximum size that asynchronous_metric_log can grow to before old data will be removed. If set to 0 (default),
+  // automatic removal of asynchronous_metric_log data based on size is disabled.
+  google.protobuf.Int64Value asynchronous_metric_log_retention_size = 53 [(value) = ">=0"];
+
+  // The maximum time that asynchronous_metric_log records will be retained before removal. If set to 0,
+  // automatic removal of asynchronous_metric_log data based on time is disabled.
+  google.protobuf.Int64Value asynchronous_metric_log_retention_time = 54 [(value) = ">=0"];
+
+  // Enable or disable session_log system table. Default value: false.
+  google.protobuf.BoolValue session_log_enabled = 57;
+
+  // The maximum size that session_log can grow to before old data will be removed. If set to 0 (default),
+  // automatic removal of session_log data based on size is disabled.
+  google.protobuf.Int64Value session_log_retention_size = 58 [(value) = ">=0"];
+
+  // The maximum time that session_log records will be retained before removal. If set to 0,
+  // automatic removal of session_log data based on time is disabled.
+  google.protobuf.Int64Value session_log_retention_time = 59 [(value) = ">=0"];
+
+  // Enable or disable zookeeper_log system table. Default value: false.
+  google.protobuf.BoolValue zookeeper_log_enabled = 60;
+
+  // The maximum size that zookeeper_log can grow to before old data will be removed. If set to 0 (default),
+  // automatic removal of zookeeper_log data based on size is disabled.
+  google.protobuf.Int64Value zookeeper_log_retention_size = 61 [(value) = ">=0"];
+
+  // The maximum time that zookeeper_log records will be retained before removal. If set to 0,
+  // automatic removal of zookeeper_log data based on time is disabled.
+  google.protobuf.Int64Value zookeeper_log_retention_time = 62 [(value) = ">=0"];
+
+  // Enable or disable asynchronous_insert_log system table. Default value: false.
+  // Minimal required ClickHouse version: 22.10.
+  google.protobuf.BoolValue asynchronous_insert_log_enabled = 63;
+
+  // The maximum size that asynchronous_insert_log can grow to before old data will be removed. If set to 0 (default),
+  // automatic removal of asynchronous_insert_log data based on size is disabled.
+  google.protobuf.Int64Value asynchronous_insert_log_retention_size = 64 [(value) = ">=0"];
+
+  // The maximum time that asynchronous_insert_log records will be retained before removal. If set to 0,
+  // automatic removal of asynchronous_insert_log data based on time is disabled.
+  google.protobuf.Int64Value asynchronous_insert_log_retention_time = 65 [(value) = ">=0"];
+
   google.protobuf.Int64Value background_pool_size = 33 [(value) = ">0"];
 
+  // Sets a ratio between the number of threads and the number of background merges and mutations that can be executed concurrently. For example, if the ratio equals to 2 and background_pool_size is set to 16 then ClickHouse can execute 32 background merges concurrently. This is possible, because background operations could be suspended and postponed. This is needed to give small merges more execution priority. You can only increase this ratio at runtime. To lower it you have to restart the server. The same as for background_pool_size setting background_merges_mutations_concurrency_ratio could be applied from the default profile for backward compatibility.
+  // Default: 2
+  // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#background_merges_mutations_concurrency_ratio)
+  google.protobuf.Int64Value background_merges_mutations_concurrency_ratio = 48 [(value) = ">0"];
+
   google.protobuf.Int64Value background_schedule_pool_size = 34 [(value) = ">0"];
+
+  // Sets the number of threads performing background fetches for tables with **ReplicatedMergeTree** engines. Default value: 8.
+  //
+  // More info see in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings/#background_fetches_pool_size).
+  google.protobuf.Int64Value background_fetches_pool_size = 38 [(value) = ">0"];
+
+  google.protobuf.Int64Value background_move_pool_size = 39 [(value) = ">0"];
+
+  google.protobuf.Int64Value background_distributed_schedule_pool_size = 40 [(value) = ">0"];
+
+  google.protobuf.Int64Value background_buffer_flush_schedule_pool_size = 41 [(value) = ">0"];
+
+  google.protobuf.Int64Value background_message_broker_schedule_pool_size = 46 [(value) = ">0"];
+
+  // The maximum number of threads that will be used for performing a variety of operations (mostly garbage collection) for *MergeTree-engine tables in a background.
+  // Default: 8
+  // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#background_common_pool_size)
+  google.protobuf.Int64Value background_common_pool_size = 47 [(value) = ">0"];
+
+  // The default database.
+  //
+  // To get a list of cluster databases, see [Yandex Managed ClickHouse documentation](/docs/managed-clickhouse/operations/databases#list-db).
+  google.protobuf.StringValue default_database = 43;
+
+  // Sets the memory size (in bytes) for a stack trace at every peak allocation step. Default value: **4194304**.
+  //
+  // More info see in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings/#total-memory-profiler-step).
+  google.protobuf.Int64Value total_memory_profiler_step = 44;
+
+  google.protobuf.DoubleValue total_memory_tracker_sample_probability = 45;
+
+  // Regexp-based rules, which will be applied to queries as well as all log messages before storing them in server logs, system.query_log, system.text_log, system.processes tables, and in logs sent to the client. That allows preventing sensitive data leakage from SQL queries (like names, emails, personal identifiers or credit card numbers) to logs.
+  // Change of these settings is applied with ClickHouse restart
+  // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#query-masking-rules)
+  repeated QueryMaskingRule query_masking_rules = 67 [(size) = ">0"];
+
+  // Lazy loading of dictionaries.
+  // Default: true
+  // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#dictionaries_lazy_load)
+  google.protobuf.BoolValue dictionaries_lazy_load = 68;
+
+  // [Query cache](https://clickhouse.com/docs/en/operations/query-cache) configuration.
+  // Min version: 23.5
+  // See in-depth description in [ClickHouse documentation](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#query_cache)
+  QueryCache query_cache = 69;
 }
 
 message ClickhouseConfigSet {

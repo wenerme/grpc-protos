@@ -45,6 +45,10 @@ enum NoteKind {
   COMPLIANCE = 9;
   // This represents a DSSE attestation Note
   DSSE_ATTESTATION = 10;
+  // This represents a Vulnerability Assessment.
+  VULNERABILITY_ASSESSMENT = 11;
+  // This represents an SBOM Reference.
+  SBOM_REFERENCE = 12;
 }
 
 // Metadata for any related URL information.

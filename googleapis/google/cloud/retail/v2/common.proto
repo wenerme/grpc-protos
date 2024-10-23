@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,13 +20,391 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 
 option csharp_namespace = "Google.Cloud.Retail.V2";
-option go_package = "google.golang.org/genproto/googleapis/cloud/retail/v2;retail";
+option go_package = "cloud.google.com/go/retail/apiv2/retailpb;retailpb";
 option java_multiple_files = true;
 option java_outer_classname = "CommonProto";
 option java_package = "com.google.cloud.retail.v2";
 option objc_class_prefix = "RETAIL";
 option php_namespace = "Google\\Cloud\\Retail\\V2";
 option ruby_package = "Google::Cloud::Retail::V2";
+
+// At which level we offer configuration for attributes.
+enum AttributeConfigLevel {
+  // Value used when unset. In this case, server behavior defaults to
+  // [CATALOG_LEVEL_ATTRIBUTE_CONFIG][google.cloud.retail.v2.AttributeConfigLevel.CATALOG_LEVEL_ATTRIBUTE_CONFIG].
+  ATTRIBUTE_CONFIG_LEVEL_UNSPECIFIED = 0;
+
+  // At this level, we honor the attribute configurations set in
+  // [Product.attributes][google.cloud.retail.v2.Product.attributes].
+  PRODUCT_LEVEL_ATTRIBUTE_CONFIG = 1;
+
+  // At this level, we honor the attribute configurations set in
+  // [CatalogConfig.attribute_configs][].
+  CATALOG_LEVEL_ATTRIBUTE_CONFIG = 2;
+}
+
+// The type of solution.
+enum SolutionType {
+  // Default value.
+  SOLUTION_TYPE_UNSPECIFIED = 0;
+
+  // Used for Recommendations AI.
+  SOLUTION_TYPE_RECOMMENDATION = 1;
+
+  // Used for Retail Search.
+  SOLUTION_TYPE_SEARCH = 2;
+}
+
+// If filtering for recommendations is enabled.
+enum RecommendationsFilteringOption {
+  // Value used when unset.
+  // In this case, server behavior defaults to
+  // [RECOMMENDATIONS_FILTERING_DISABLED][google.cloud.retail.v2.RecommendationsFilteringOption.RECOMMENDATIONS_FILTERING_DISABLED].
+  RECOMMENDATIONS_FILTERING_OPTION_UNSPECIFIED = 0;
+
+  // Recommendation filtering is disabled.
+  RECOMMENDATIONS_FILTERING_DISABLED = 1;
+
+  // Recommendation filtering is enabled.
+  RECOMMENDATIONS_FILTERING_ENABLED = 3;
+}
+
+// The use case of Cloud Retail Search.
+enum SearchSolutionUseCase {
+  // The value when it's unspecified. In this case, server behavior defaults to
+  // [SEARCH_SOLUTION_USE_CASE_SEARCH][google.cloud.retail.v2.SearchSolutionUseCase.SEARCH_SOLUTION_USE_CASE_SEARCH].
+  SEARCH_SOLUTION_USE_CASE_UNSPECIFIED = 0;
+
+  // Search use case. Expects the traffic has a non-empty
+  // [query][google.cloud.retail.v2.SearchRequest.query].
+  SEARCH_SOLUTION_USE_CASE_SEARCH = 1;
+
+  // Browse use case. Expects the traffic has an empty
+  // [query][google.cloud.retail.v2.SearchRequest.query].
+  SEARCH_SOLUTION_USE_CASE_BROWSE = 2;
+}
+
+// Metadata that is used to define a condition that triggers an action.
+// A valid condition must specify at least one of 'query_terms' or
+// 'products_filter'. If multiple fields are specified, the condition is met if
+// all the fields are satisfied e.g. if a set of query terms and product_filter
+// are set, then only items matching the product_filter for requests with a
+// query matching the query terms wil get boosted.
+message Condition {
+  // Query terms that we want to match on.
+  message QueryTerm {
+    // The value of the term to match on.
+    // Value cannot be empty.
+    // Value can have at most 3 terms if specified as a partial match. Each
+    // space separated string is considered as one term.
+    // For example, "a b c" is 3 terms and allowed, but " a b c d" is 4 terms
+    // and not allowed for a partial match.
+    string value = 1;
+
+    // Whether this is supposed to be a full or partial match.
+    bool full_match = 2;
+  }
+
+  // Used for time-dependent conditions.
+  // Example: Want to have rule applied for week long sale.
+  message TimeRange {
+    // Start of time range. Range is inclusive.
+    google.protobuf.Timestamp start_time = 1;
+
+    // End of time range. Range is inclusive.
+    google.protobuf.Timestamp end_time = 2;
+  }
+
+  // A list (up to 10 entries) of terms to match the query on. If not
+  // specified, match all queries.
+  // If many query terms are specified, the condition
+  // is matched if any of the terms is a match (i.e. using the OR operator).
+  repeated QueryTerm query_terms = 1;
+
+  // Range of time(s) specifying when Condition is active.
+  // Condition true if any time range matches.
+  repeated TimeRange active_time_range = 3;
+
+  // Used to support browse uses cases.
+  // A list (up to 10 entries) of categories or departments.
+  // The format should be the same as
+  // [UserEvent.page_categories][google.cloud.retail.v2.UserEvent.page_categories];
+  repeated string page_categories = 4;
+}
+
+// A rule is a condition-action pair
+//
+// * A condition defines when a rule is to be triggered.
+// * An action specifies what occurs on that trigger.
+// Currently rules only work for [controls][google.cloud.retail.v2.Control] with
+// [SOLUTION_TYPE_SEARCH][google.cloud.retail.v2.SolutionType.SOLUTION_TYPE_SEARCH].
+message Rule {
+  // A boost action to apply to results matching condition specified above.
+  message BoostAction {
+    // Strength of the condition boost, which must be in [-1, 1]. Negative
+    // boost means demotion. Default is 0.0.
+    //
+    // Setting to 1.0 gives the item a big promotion. However, it does not
+    // necessarily mean that the boosted item will be the top result at all
+    // times, nor that other items will be excluded. Results could still be
+    // shown even when none of them matches the condition. And results that
+    // are significantly more relevant to the search query can still trump
+    // your heavily favored but irrelevant items.
+    //
+    // Setting to -1.0 gives the item a big demotion. However, results that
+    // are deeply relevant might still be shown. The item will have an
+    // upstream battle to get a fairly high ranking, but it is not blocked out
+    // completely.
+    //
+    // Setting to 0.0 means no boost applied. The boosting condition is
+    // ignored.
+    float boost = 1;
+
+    // The filter can have a max size of 5000 characters.
+    // An expression which specifies which products to apply an action to.
+    // The syntax and supported fields are the same as a filter expression. See
+    // [SearchRequest.filter][google.cloud.retail.v2.SearchRequest.filter] for
+    // detail syntax and limitations.
+    //
+    // Examples:
+    //
+    // * To boost products with product ID "product_1" or "product_2", and
+    // color
+    //   "Red" or "Blue":<br>
+    //   *(id: ANY("product_1", "product_2"))<br>*
+    //   *AND<br>*
+    //   *(colorFamilies: ANY("Red", "Blue"))<br>*
+    string products_filter = 2;
+  }
+
+  // * Rule Condition:
+  //     - No
+  //     [Condition.query_terms][google.cloud.retail.v2.Condition.query_terms]
+  //     provided is a global match.
+  //     - 1 or more
+  //     [Condition.query_terms][google.cloud.retail.v2.Condition.query_terms]
+  //     provided are combined with OR operator.
+  //
+  // * Action Input: The request query and filter that are applied to the
+  // retrieved products, in addition to any filters already provided with the
+  // SearchRequest. The AND operator is used to combine the query's existing
+  // filters with the filter rule(s). NOTE: May result in 0 results when
+  // filters conflict.
+  //
+  // * Action Result: Filters the returned objects to be ONLY those that passed
+  // the filter.
+  message FilterAction {
+    // A filter to apply on the matching condition results. Supported features:
+    //
+    // * [filter][google.cloud.retail.v2.Rule.FilterAction.filter] must be set.
+    // * Filter syntax is identical to
+    // [SearchRequest.filter][google.cloud.retail.v2.SearchRequest.filter]. For
+    // more
+    //   information, see [Filter](/retail/docs/filter-and-order#filter).
+    // * To filter products with product ID "product_1" or "product_2", and
+    // color
+    //   "Red" or "Blue":<br>
+    //   *(id: ANY("product_1", "product_2"))<br>*
+    //   *AND<br>*
+    //   *(colorFamilies: ANY("Red", "Blue"))<br>*
+    string filter = 1;
+  }
+
+  // Redirects a shopper to a specific page.
+  //
+  // * Rule Condition:
+  //   Must specify
+  //   [Condition.query_terms][google.cloud.retail.v2.Condition.query_terms].
+  // * Action Input: Request Query
+  // * Action Result: Redirects shopper to provided uri.
+  message RedirectAction {
+    // URL must have length equal or less than 2000 characters.
+    string redirect_uri = 1;
+  }
+
+  // Creates a set of terms that will be treated as synonyms of each other.
+  // Example: synonyms of "sneakers" and "shoes":
+  //
+  //  * "sneakers" will use a synonym of "shoes".
+  //  * "shoes" will use a synonym of "sneakers".
+  message TwowaySynonymsAction {
+    // Defines a set of synonyms.
+    // Can specify up to 100 synonyms.
+    // Must specify at least 2 synonyms.
+    repeated string synonyms = 1;
+  }
+
+  // Maps a set of terms to a set of synonyms.
+  // Set of synonyms will be treated as synonyms of each query term only.
+  // `query_terms` will not be treated as synonyms of each other.
+  // Example: "sneakers" will use a synonym of "shoes".
+  // "shoes" will not use a synonym of "sneakers".
+  message OnewaySynonymsAction {
+    // Terms from the search query.
+    // Will treat synonyms as their synonyms.
+    // Not themselves synonyms of the synonyms.
+    // Can specify up to 100 terms.
+    repeated string query_terms = 3;
+
+    // Defines a set of synonyms.
+    // Cannot contain duplicates.
+    // Can specify up to 100 synonyms.
+    repeated string synonyms = 4;
+
+    // Will be [deprecated = true] post migration;
+    repeated string oneway_terms = 2;
+  }
+
+  // Prevents `query_term` from being associated with specified terms during
+  // search.
+  // Example: Don't associate "gShoe" and "cheap".
+  message DoNotAssociateAction {
+    // Terms from the search query.
+    // Will not consider do_not_associate_terms for search if in search query.
+    // Can specify up to 100 terms.
+    repeated string query_terms = 2;
+
+    // Cannot contain duplicates or the query term.
+    // Can specify up to 100 terms.
+    repeated string do_not_associate_terms = 3;
+
+    // Will be [deprecated = true] post migration;
+    repeated string terms = 1;
+  }
+
+  // Replaces a term in the query. Multiple replacement candidates can be
+  // specified. All `query_terms` will be replaced with the replacement term.
+  // Example: Replace "gShoe" with "google shoe".
+  message ReplacementAction {
+    // Terms from the search query.
+    // Will be replaced by replacement term.
+    // Can specify up to 100 terms.
+    repeated string query_terms = 2;
+
+    // Term that will be used for replacement.
+    string replacement_term = 3;
+
+    // Will be [deprecated = true] post migration;
+    string term = 1;
+  }
+
+  // Prevents a term in the query from being used in search.
+  // Example: Don't search for "shoddy".
+  message IgnoreAction {
+    // Terms to ignore in the search query.
+    repeated string ignore_terms = 1;
+  }
+
+  // Force returns an attribute/facet in the request around a certain position
+  // or above.
+  //
+  // * Rule Condition:
+  //   Must specify non-empty
+  //   [Condition.query_terms][google.cloud.retail.v2.Condition.query_terms]
+  //   (for search only) or
+  //   [Condition.page_categories][google.cloud.retail.v2.Condition.page_categories]
+  //   (for browse only), but can't specify both.
+  //
+  // * Action Inputs: attribute name, position
+  //
+  // * Action Result: Will force return a facet key around a certain position
+  // or above if the condition is satisfied.
+  //
+  // Example: Suppose the query is "shoes", the
+  // [Condition.query_terms][google.cloud.retail.v2.Condition.query_terms] is
+  // "shoes", the
+  // [ForceReturnFacetAction.FacetPositionAdjustment.attribute_name][google.cloud.retail.v2.Rule.ForceReturnFacetAction.FacetPositionAdjustment.attribute_name]
+  // is "size" and the
+  // [ForceReturnFacetAction.FacetPositionAdjustment.position][google.cloud.retail.v2.Rule.ForceReturnFacetAction.FacetPositionAdjustment.position]
+  // is 8.
+  //
+  // Two cases: a) The facet key "size" is not already in the top 8 slots, then
+  // the facet "size" will appear at a position close to 8. b) The facet key
+  // "size" in among the top 8 positions in the request, then it will stay at
+  // its current rank.
+  message ForceReturnFacetAction {
+    // Each facet position adjustment consists of a single attribute name (i.e.
+    // facet key) along with a specified position.
+    message FacetPositionAdjustment {
+      // The attribute name to force return as a facet. Each attribute name
+      // should be a valid attribute name, be non-empty and contain at most 80
+      // characters long.
+      string attribute_name = 1;
+
+      // This is the position in the request as explained above. It should be
+      // strictly positive be at most 100.
+      int32 position = 2;
+    }
+
+    // Each instance corresponds to a force return attribute for the given
+    // condition. There can't be more 15 instances here.
+    repeated FacetPositionAdjustment facet_position_adjustments = 1;
+  }
+
+  // Removes an attribute/facet in the request if is present.
+  //
+  // * Rule Condition:
+  //   Must specify non-empty
+  //   [Condition.query_terms][google.cloud.retail.v2.Condition.query_terms]
+  //   (for search only) or
+  //   [Condition.page_categories][google.cloud.retail.v2.Condition.page_categories]
+  //   (for browse only), but can't specify both.
+  //
+  // * Action Input: attribute name
+  //
+  // * Action Result: Will remove the attribute (as a facet) from the request
+  // if it is present.
+  //
+  // Example: Suppose the query is "shoes", the
+  // [Condition.query_terms][google.cloud.retail.v2.Condition.query_terms] is
+  // "shoes" and the attribute name "size", then facet key "size" will be
+  // removed from the request (if it is present).
+  message RemoveFacetAction {
+    // The attribute names (i.e. facet keys) to remove from the dynamic facets
+    // (if present in the request). There can't be more 3 attribute names.
+    // Each attribute name should be a valid attribute name, be non-empty and
+    // contain at most 80 characters.
+    repeated string attribute_names = 1;
+  }
+
+  // An action must be provided.
+  oneof action {
+    // A boost action.
+    BoostAction boost_action = 2;
+
+    // Redirects a shopper to a specific page.
+    RedirectAction redirect_action = 3;
+
+    // Treats specific term as a synonym with a group of terms.
+    // Group of terms will not be treated as synonyms with the specific term.
+    OnewaySynonymsAction oneway_synonyms_action = 6;
+
+    // Prevents term from being associated with other terms.
+    DoNotAssociateAction do_not_associate_action = 7;
+
+    // Replaces specific terms in the query.
+    ReplacementAction replacement_action = 8;
+
+    // Ignores specific terms from query during search.
+    IgnoreAction ignore_action = 9;
+
+    // Filters results.
+    FilterAction filter_action = 10;
+
+    // Treats a set of terms as synonyms of one another.
+    TwowaySynonymsAction twoway_synonyms_action = 11;
+
+    // Force returns an attribute as a facet in the request.
+    ForceReturnFacetAction force_return_facet_action = 12;
+
+    // Remove an attribute as a facet in the request (if present).
+    RemoveFacetAction remove_facet_action = 13;
+  }
+
+  // Required. The condition that triggers the rule.
+  // If the condition is empty, the rule will always apply.
+  Condition condition = 1 [(google.api.field_behavior) = REQUIRED];
+}
 
 // An intended audience of the [Product][google.cloud.retail.v2.Product] for
 // whom it's sold.
@@ -83,7 +461,7 @@ message ColorInfo {
   // it is expected to have only 1 color. May consider using single "Mixed"
   // instead of multiple values.
   //
-  // A maximum of 25 colors are allowed. Each value must be a UTF-8 encoded
+  // A maximum of 75 colors are allowed. Each value must be a UTF-8 encoded
   // string with a length limit of 128 characters. Otherwise, an
   // INVALID_ARGUMENT error is returned.
   //
@@ -116,8 +494,8 @@ message CustomAttribute {
   repeated double numbers = 2;
 
   // This field is normally ignored unless
-  // [AttributesConfig.attribute_config_level][] of the
-  // [Catalog][google.cloud.retail.v2.Catalog] is set to the deprecated
+  // [AttributesConfig.attribute_config_level][google.cloud.retail.v2.AttributesConfig.attribute_config_level]
+  // of the [Catalog][google.cloud.retail.v2.Catalog] is set to the deprecated
   // 'PRODUCT_LEVEL_ATTRIBUTE_CONFIG' mode. For information about product-level
   // attribute configuration, see [Configuration
   // modes](https://cloud.google.com/retail/docs/attribute-config#config-modes).
@@ -131,8 +509,8 @@ message CustomAttribute {
   optional bool searchable = 3 [deprecated = true];
 
   // This field is normally ignored unless
-  // [AttributesConfig.attribute_config_level][] of the
-  // [Catalog][google.cloud.retail.v2.Catalog] is set to the deprecated
+  // [AttributesConfig.attribute_config_level][google.cloud.retail.v2.AttributesConfig.attribute_config_level]
+  // of the [Catalog][google.cloud.retail.v2.Catalog] is set to the deprecated
   // 'PRODUCT_LEVEL_ATTRIBUTE_CONFIG' mode. For information about product-level
   // attribute configuration, see [Configuration
   // modes](https://cloud.google.com/retail/docs/attribute-config#config-modes).
@@ -219,9 +597,8 @@ message Interval {
   // The lower bound of the interval. If neither of the min fields are set, then
   // the lower bound is negative infinity.
   //
-  // This field must be not larger than
-  // [max][google.cloud.retail.v2.Interval.max]. Otherwise, an INVALID_ARGUMENT
-  // error is returned.
+  // This field must not be larger than max.
+  // Otherwise, an INVALID_ARGUMENT error is returned.
   oneof min {
     // Inclusive lower bound.
     double minimum = 1;
@@ -233,9 +610,8 @@ message Interval {
   // The upper bound of the interval. If neither of the max fields are set, then
   // the upper bound is positive infinity.
   //
-  // This field must be not smaller than
-  // [min][google.cloud.retail.v2.Interval.min]. Otherwise, an INVALID_ARGUMENT
-  // error is returned.
+  // This field must be not smaller than min.
+  // Otherwise, an INVALID_ARGUMENT error is returned.
   oneof max {
     // Inclusive upper bound.
     double maximum = 3;

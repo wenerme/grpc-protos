@@ -113,6 +113,9 @@ message WorkflowExecutionStartedEventAttributes {
   SearchAttributes search_attributes = 20;
   ResetPoints prev_auto_reset_points = 21;
   Header header = 22;
+  google.protobuf.Timestamp first_scheduled_time = 23;
+  map<string, string> partition_config = 24;
+  string request_id = 25;
 }
 
 message WorkflowExecutionCompletedEventAttributes {
@@ -159,6 +162,7 @@ message DecisionTaskTimedOutEventAttributes {
   int64 fork_event_version = 6;
   string reason = 7;
   DecisionTaskTimedOutCause cause = 8;
+  string request_id = 9;
 }
 
 message DecisionTaskFailedEventAttributes {
@@ -172,6 +176,7 @@ message DecisionTaskFailedEventAttributes {
   string new_run_id = 7;
   int64 fork_event_version = 8;
   string binary_checksum = 9;
+  string request_id = 10;
 }
 
 message ActivityTaskScheduledEventAttributes {
@@ -286,6 +291,7 @@ message WorkflowExecutionCancelRequestedEventAttributes {
   string cause = 1;
   string identity = 2;
   ExternalExecutionInfo external_execution_info = 3;
+  string request_id = 4;
 }
 
 message WorkflowExecutionCanceledEventAttributes {
@@ -304,6 +310,7 @@ message WorkflowExecutionSignaledEventAttributes {
   string signal_name = 1;
   Payload input = 2;
   string identity = 3;
+  string request_id = 4;
 }
 
 message WorkflowExecutionTerminatedEventAttributes {
@@ -385,6 +392,7 @@ message StartChildWorkflowExecutionInitiatedEventAttributes {
   SearchAttributes search_attributes = 17;
   google.protobuf.Duration delay_start = 18;
   google.protobuf.Duration jitter_start = 19;
+  google.protobuf.Timestamp first_run_at = 20;
 }
 
 message StartChildWorkflowExecutionFailedEventAttributes {

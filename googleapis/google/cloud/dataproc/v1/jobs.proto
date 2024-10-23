@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "google.golang.org/genproto/googleapis/cloud/dataproc/v1;dataproc";
+option go_package = "cloud.google.com/go/dataproc/v2/apiv1/dataprocpb;dataprocpb";
 option java_multiple_files = true;
 option java_outer_classname = "JobsProto";
 option java_package = "com.google.cloud.dataproc.v1";
@@ -32,7 +32,8 @@ option java_package = "com.google.cloud.dataproc.v1";
 // The JobController provides methods to manage jobs.
 service JobController {
   option (google.api.default_host) = "dataproc.googleapis.com";
-  option (google.api.oauth_scopes) = "https://www.googleapis.com/auth/cloud-platform";
+  option (google.api.oauth_scopes) =
+      "https://www.googleapis.com/auth/cloud-platform";
 
   // Submits a job to a cluster.
   rpc SubmitJob(SubmitJobRequest) returns (Job) {
@@ -44,7 +45,8 @@ service JobController {
   }
 
   // Submits job to a cluster.
-  rpc SubmitJobAsOperation(SubmitJobRequest) returns (google.longrunning.Operation) {
+  rpc SubmitJobAsOperation(SubmitJobRequest)
+      returns (google.longrunning.Operation) {
     option (google.api.http) = {
       post: "/v1/projects/{project_id}/regions/{region}/jobs:submitAsOperation"
       body: "*"
@@ -138,10 +140,12 @@ message LoggingConfig {
     OFF = 8;
   }
 
-  // The per-package log levels for the driver. This may include
+  // The per-package log levels for the driver. This can include
   // "root" package name to configure rootLogger.
   // Examples:
-  //   'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+  // - 'com.google = FATAL'
+  // - 'root = INFO'
+  // - 'org.apache = DEBUG'
   map<string, Level> driver_log_levels = 2;
 }
 
@@ -170,7 +174,7 @@ message HadoopJob {
 
   // Optional. The arguments to pass to the driver. Do not
   // include arguments, such as `-libjars` or `-Dfoo=bar`, that can be set as
-  // job properties, since a collision may occur that causes an incorrect job
+  // job properties, since a collision might occur that causes an incorrect job
   // submission.
   repeated string args = 3 [(google.api.field_behavior) = OPTIONAL];
 
@@ -189,8 +193,8 @@ message HadoopJob {
   repeated string archive_uris = 6 [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. A mapping of property names to values, used to configure Hadoop.
-  // Properties that conflict with values set by the Dataproc API may be
-  // overwritten. Can include properties set in /etc/hadoop/conf/*-site and
+  // Properties that conflict with values set by the Dataproc API might be
+  // overwritten. Can include properties set in `/etc/hadoop/conf/*-site` and
   // classes in user code.
   map<string, string> properties = 7 [(google.api.field_behavior) = OPTIONAL];
 
@@ -198,20 +202,22 @@ message HadoopJob {
   LoggingConfig logging_config = 8 [(google.api.field_behavior) = OPTIONAL];
 }
 
-// A Dataproc job for running [Apache Spark](http://spark.apache.org/)
+// A Dataproc job for running [Apache Spark](https://spark.apache.org/)
 // applications on YARN.
 message SparkJob {
   // Required. The specification of the main method to call to drive the job.
   // Specify either the jar file that contains the main class or the main class
   // name. To pass both a main jar and a main class in that jar, add the jar to
-  // `CommonJob.jar_file_uris`, and then specify the main class name in
-  // `main_class`.
+  // [jarFileUris][google.cloud.dataproc.v1.SparkJob.jar_file_uris], and then
+  // specify the main class name in
+  // [mainClass][google.cloud.dataproc.v1.SparkJob.main_class].
   oneof driver {
     // The HCFS URI of the jar file that contains the main class.
     string main_jar_file_uri = 1;
 
     // The name of the driver's main class. The jar file that contains the class
-    // must be in the default CLASSPATH or specified in `jar_file_uris`.
+    // must be in the default CLASSPATH or specified in
+    // SparkJob.jar_file_uris.
     string main_class = 2;
   }
 
@@ -234,7 +240,7 @@ message SparkJob {
   repeated string archive_uris = 6 [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. A mapping of property names to values, used to configure Spark.
-  // Properties that conflict with values set by the Dataproc API may be
+  // Properties that conflict with values set by the Dataproc API might be
   // overwritten. Can include properties set in
   // /etc/spark/conf/spark-defaults.conf and classes in user code.
   map<string, string> properties = 7 [(google.api.field_behavior) = OPTIONAL];
@@ -275,7 +281,7 @@ message PySparkJob {
   repeated string archive_uris = 6 [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. A mapping of property names to values, used to configure PySpark.
-  // Properties that conflict with values set by the Dataproc API may be
+  // Properties that conflict with values set by the Dataproc API might be
   // overwritten. Can include properties set in
   // /etc/spark/conf/spark-defaults.conf and classes in user code.
   map<string, string> properties = 7 [(google.api.field_behavior) = OPTIONAL];
@@ -323,11 +329,12 @@ message HiveJob {
 
   // Optional. Mapping of query variable names to values (equivalent to the
   // Hive command: `SET name="value";`).
-  map<string, string> script_variables = 4 [(google.api.field_behavior) = OPTIONAL];
+  map<string, string> script_variables = 4
+      [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. A mapping of property names and values, used to configure Hive.
-  // Properties that conflict with values set by the Dataproc API may be
-  // overwritten. Can include properties set in /etc/hadoop/conf/*-site.xml,
+  // Properties that conflict with values set by the Dataproc API might be
+  // overwritten. Can include properties set in `/etc/hadoop/conf/*-site.xml`,
   // /etc/hive/conf/hive-site.xml, and classes in user code.
   map<string, string> properties = 5 [(google.api.field_behavior) = OPTIONAL];
 
@@ -338,7 +345,7 @@ message HiveJob {
 }
 
 // A Dataproc job for running [Apache Spark
-// SQL](http://spark.apache.org/sql/) queries.
+// SQL](https://spark.apache.org/sql/) queries.
 message SparkSqlJob {
   // Required. The sequence of Spark SQL queries to execute, specified as
   // either an HCFS file URI or as a list of queries.
@@ -352,11 +359,12 @@ message SparkSqlJob {
 
   // Optional. Mapping of query variable names to values (equivalent to the
   // Spark SQL command: SET `name="value";`).
-  map<string, string> script_variables = 3 [(google.api.field_behavior) = OPTIONAL];
+  map<string, string> script_variables = 3
+      [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. A mapping of property names to values, used to configure
   // Spark SQL's SparkConf. Properties that conflict with values set by the
-  // Dataproc API may be overwritten.
+  // Dataproc API might be overwritten.
   map<string, string> properties = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. HCFS URIs of jar files to be added to the Spark CLASSPATH.
@@ -386,11 +394,12 @@ message PigJob {
 
   // Optional. Mapping of query variable names to values (equivalent to the Pig
   // command: `name=[value]`).
-  map<string, string> script_variables = 4 [(google.api.field_behavior) = OPTIONAL];
+  map<string, string> script_variables = 4
+      [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. A mapping of property names to values, used to configure Pig.
-  // Properties that conflict with values set by the Dataproc API may be
-  // overwritten. Can include properties set in /etc/hadoop/conf/*-site.xml,
+  // Properties that conflict with values set by the Dataproc API might be
+  // overwritten. Can include properties set in `/etc/hadoop/conf/*-site.xml`,
   // /etc/pig/conf/pig.properties, and classes in user code.
   map<string, string> properties = 5 [(google.api.field_behavior) = OPTIONAL];
 
@@ -425,7 +434,7 @@ message SparkRJob {
   repeated string archive_uris = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. A mapping of property names to values, used to configure SparkR.
-  // Properties that conflict with values set by the Dataproc API may be
+  // Properties that conflict with values set by the Dataproc API might be
   // overwritten. Can include properties set in
   // /etc/spark/conf/spark-defaults.conf and classes in user code.
   map<string, string> properties = 5 [(google.api.field_behavior) = OPTIONAL];
@@ -471,6 +480,84 @@ message PrestoJob {
   LoggingConfig logging_config = 7 [(google.api.field_behavior) = OPTIONAL];
 }
 
+// A Dataproc job for running [Trino](https://trino.io/) queries.
+// **IMPORTANT**: The [Dataproc Trino Optional
+// Component](https://cloud.google.com/dataproc/docs/concepts/components/trino)
+// must be enabled when the cluster is created to submit a Trino job to the
+// cluster.
+message TrinoJob {
+  // Required. The sequence of Trino queries to execute, specified as
+  // either an HCFS file URI or as a list of queries.
+  oneof queries {
+    // The HCFS URI of the script that contains SQL queries.
+    string query_file_uri = 1;
+
+    // A list of queries.
+    QueryList query_list = 2;
+  }
+
+  // Optional. Whether to continue executing queries if a query fails.
+  // The default value is `false`. Setting to `true` can be useful when
+  // executing independent parallel queries.
+  bool continue_on_failure = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. The format in which query output will be displayed. See the
+  // Trino documentation for supported output formats
+  string output_format = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. Trino client tags to attach to this query
+  repeated string client_tags = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. A mapping of property names to values. Used to set Trino
+  // [session properties](https://trino.io/docs/current/sql/set-session.html)
+  // Equivalent to using the --session flag in the Trino CLI
+  map<string, string> properties = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. The runtime log config for job execution.
+  LoggingConfig logging_config = 7 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// A Dataproc job for running Apache Flink applications on YARN.
+message FlinkJob {
+  // Required. The specification of the main method to call to drive the job.
+  // Specify either the jar file that contains the main class or the main class
+  // name. To pass both a main jar and a main class in the jar, add the jar to
+  // [jarFileUris][google.cloud.dataproc.v1.FlinkJob.jar_file_uris], and then
+  // specify the main class name in
+  // [mainClass][google.cloud.dataproc.v1.FlinkJob.main_class].
+  oneof driver {
+    // The HCFS URI of the jar file that contains the main class.
+    string main_jar_file_uri = 1;
+
+    // The name of the driver's main class. The jar file that contains the class
+    // must be in the default CLASSPATH or specified in
+    // [jarFileUris][google.cloud.dataproc.v1.FlinkJob.jar_file_uris].
+    string main_class = 2;
+  }
+
+  // Optional. The arguments to pass to the driver. Do not include arguments,
+  // such as `--conf`, that can be set as job properties, since a collision
+  // might occur that causes an incorrect job submission.
+  repeated string args = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. HCFS URIs of jar files to add to the CLASSPATHs of the
+  // Flink driver and tasks.
+  repeated string jar_file_uris = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. HCFS URI of the savepoint, which contains the last saved progress
+  // for starting the current job.
+  string savepoint_uri = 9 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. A mapping of property names to values, used to configure Flink.
+  // Properties that conflict with values set by the Dataproc API might be
+  // overwritten. Can include properties set in
+  // `/etc/flink/conf/flink-defaults.conf` and classes in user code.
+  map<string, string> properties = 7 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. The runtime log config for job execution.
+  LoggingConfig logging_config = 8 [(google.api.field_behavior) = OPTIONAL];
+}
+
 // Dataproc job config.
 message JobPlacement {
   // Required. The name of the cluster where the job will be submitted.
@@ -480,8 +567,10 @@ message JobPlacement {
   // the job is submitted.
   string cluster_uuid = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
 
-  // Optional. Cluster labels to identify a cluster where the job will be submitted.
-  map<string, string> cluster_labels = 3 [(google.api.field_behavior) = OPTIONAL];
+  // Optional. Cluster labels to identify a cluster where the job will be
+  // submitted.
+  map<string, string> cluster_labels = 3
+      [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Dataproc job status.
@@ -534,14 +623,14 @@ message JobStatus {
     // Applies to RUNNING state.
     SUBMITTED = 1;
 
-    // The Job has been received and is awaiting execution (it may be waiting
+    // The Job has been received and is awaiting execution (it might be waiting
     // for a condition to be met). See the "details" field for the reason for
     // the delay.
     //
     // Applies to RUNNING state.
     QUEUED = 2;
 
-    // The agent-reported status is out of date, which may be caused by a
+    // The agent-reported status is out of date, which can be caused by a
     // loss of communication between the agent and Dataproc. If the
     // agent does not send a timely update, the job will fail.
     //
@@ -553,14 +642,15 @@ message JobStatus {
   State state = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Optional. Output only. Job state details, such as an error
-  // description if the state is <code>ERROR</code>.
+  // description if the state is `ERROR`.
   string details = 2 [
     (google.api.field_behavior) = OUTPUT_ONLY,
     (google.api.field_behavior) = OPTIONAL
   ];
 
   // Output only. The time when this state was entered.
-  google.protobuf.Timestamp state_start_time = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp state_start_time = 6
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Output only. Additional state information, which includes
   // status reported by the agent.
@@ -569,8 +659,8 @@ message JobStatus {
 
 // Encapsulates the full scoping used to reference a job.
 message JobReference {
-  // Optional. The ID of the Google Cloud Platform project that the job belongs to. If
-  // specified, must match the request project ID.
+  // Optional. The ID of the Google Cloud Platform project that the job belongs
+  // to. If specified, must match the request project ID.
   string project_id = 1 [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. The job ID, which must be unique within the project.
@@ -672,35 +762,45 @@ message Job {
 
     // Optional. Job is a Presto job.
     PrestoJob presto_job = 23 [(google.api.field_behavior) = OPTIONAL];
+
+    // Optional. Job is a Trino job.
+    TrinoJob trino_job = 28 [(google.api.field_behavior) = OPTIONAL];
+
+    // Optional. Job is a Flink job.
+    FlinkJob flink_job = 29 [(google.api.field_behavior) = OPTIONAL];
   }
 
   // Output only. The job status. Additional application-specific
-  // status information may be contained in the <code>type_job</code>
+  // status information might be contained in the <code>type_job</code>
   // and <code>yarn_applications</code> fields.
   JobStatus status = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Output only. The previous job status.
-  repeated JobStatus status_history = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  repeated JobStatus status_history = 13
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Output only. The collection of YARN applications spun up by this job.
   //
   // **Beta** Feature: This report is available for testing purposes only. It
-  // may be changed before final release.
-  repeated YarnApplication yarn_applications = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // might be changed before final release.
+  repeated YarnApplication yarn_applications = 9
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Output only. A URI pointing to the location of the stdout of the job's
   // driver program.
-  string driver_output_resource_uri = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string driver_output_resource_uri = 17
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Output only. If present, the location of miscellaneous control files
-  // which may be used as part of job setup and handling. If not present,
-  // control files may be placed in the same location as `driver_output_uri`.
-  string driver_control_files_uri = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // which can be used as part of job setup and handling. If not present,
+  // control files might be placed in the same location as `driver_output_uri`.
+  string driver_control_files_uri = 15
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Optional. The labels to associate with this job.
   // Label **keys** must contain 1 to 63 characters, and must conform to
   // [RFC 1035](https://www.ietf.org/rfc/rfc1035.txt).
-  // Label **values** may be empty, but, if present, must contain 1 to 63
+  // Label **values** can be empty, but, if present, must contain 1 to 63
   // characters, and must conform to [RFC
   // 1035](https://www.ietf.org/rfc/rfc1035.txt). No more than 32 labels can be
   // associated with a job.
@@ -711,43 +811,55 @@ message Job {
 
   // Output only. A UUID that uniquely identifies a job within the project
   // over time. This is in contrast to a user-settable reference.job_id that
-  // may be reused over time.
+  // might be reused over time.
   string job_uuid = 22 [(google.api.field_behavior) = OUTPUT_ONLY];
 
-  // Output only. Indicates whether the job is completed. If the value is `false`,
-  // the job is still in progress. If `true`, the job is completed, and
+  // Output only. Indicates whether the job is completed. If the value is
+  // `false`, the job is still in progress. If `true`, the job is completed, and
   // `status.state` field will indicate if it was successful, failed,
   // or cancelled.
   bool done = 24 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Optional. Driver scheduling configuration.
+  DriverSchedulingConfig driver_scheduling_config = 27
+      [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Driver scheduling configuration.
+message DriverSchedulingConfig {
+  // Required. The amount of memory in MB the driver is requesting.
+  int32 memory_mb = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // Required. The number of vCPUs the driver is requesting.
+  int32 vcores = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 // Job scheduling options.
 message JobScheduling {
-  // Optional. Maximum number of times per hour a driver may be restarted as
+  // Optional. Maximum number of times per hour a driver can be restarted as
   // a result of driver exiting with non-zero code before job is
   // reported failed.
   //
-  // A job may be reported as thrashing if driver exits with non-zero code
-  // 4 times within 10 minute window.
+  // A job might be reported as thrashing if the driver exits with a non-zero
+  // code four times within a 10-minute window.
   //
   // Maximum value is 10.
   //
-  // **Note:** Currently, this restartable job option is
-  // not supported in Dataproc
-  // [workflow
-  // template](https://cloud.google.com/dataproc/docs/concepts/workflows/using-workflows#adding_jobs_to_a_template)
-  // jobs.
+  // **Note:** This restartable job option is not supported in Dataproc
+  // [workflow templates]
+  // (https://cloud.google.com/dataproc/docs/concepts/workflows/using-workflows#adding_jobs_to_a_template).
   int32 max_failures_per_hour = 1 [(google.api.field_behavior) = OPTIONAL];
 
-  // Optional. Maximum number of times in total a driver may be restarted as a result of
-  // driver exiting with non-zero code before job is reported failed.
+  // Optional. Maximum total number of times a driver can be restarted as a
+  // result of the driver exiting with a non-zero code. After the maximum number
+  // is reached, the job will be reported as failed.
+  //
   // Maximum value is 240.
   //
   // **Note:** Currently, this restartable job option is
   // not supported in Dataproc
   // [workflow
-  // template](https://cloud.google.com/dataproc/docs/concepts/workflows/using-workflows#adding_jobs_to_a_template)
-  // jobs.
+  // templates](https://cloud.google.com/dataproc/docs/concepts/workflows/using-workflows#adding_jobs_to_a_template).
   int32 max_failures_total = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
@@ -790,7 +902,8 @@ message JobMetadata {
   string operation_type = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Output only. Job submission time.
-  google.protobuf.Timestamp start_time = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp start_time = 4
+      [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // A request to get the resource representation for a job in a project.
@@ -843,7 +956,8 @@ message ListJobsRequest {
   // (default = match ALL jobs).
   //
   // If `filter` is provided, `jobStateMatcher` will be ignored.
-  JobStateMatcher job_state_matcher = 5 [(google.api.field_behavior) = OPTIONAL];
+  JobStateMatcher job_state_matcher = 5
+      [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. A filter constraining the jobs to list. Filters are
   // case-sensitive and have the following syntax:
@@ -883,7 +997,8 @@ message UpdateJobRequest {
   // <code>labels</code>, and the `PATCH` request body would specify the new
   // value. <strong>Note:</strong> Currently, <code>labels</code> is the only
   // field that can be updated.
-  google.protobuf.FieldMask update_mask = 5 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.FieldMask update_mask = 5
+      [(google.api.field_behavior) = REQUIRED];
 }
 
 // A list of jobs in a project.
@@ -895,6 +1010,12 @@ message ListJobsResponse {
   // to fetch. To fetch additional results, provide this value as the
   // `page_token` in a subsequent <code>ListJobsRequest</code>.
   string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Output only. List of jobs with
+  // [kms_key][google.cloud.dataproc.v1.EncryptionConfig.kms_key]-encrypted
+  // parameters that could not be decrypted. A response to a `jobs.get` request
+  // may indicate the reason for the decryption failure for a specific job.
+  repeated string unreachable = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // A request to cancel a job.

@@ -28,19 +28,17 @@ option go_package = "go.temporal.io/api/command/v1;command";
 option java_package = "io.temporal.api.command.v1";
 option java_multiple_files = true;
 option java_outer_classname = "MessageProto";
-option ruby_package = "Temporal::Api::Command::V1";
-option csharp_namespace = "Temporal.Api.Command.V1";
+option ruby_package = "Temporalio::Api::Command::V1";
+option csharp_namespace = "Temporalio.Api.Command.V1";
 
 import "google/protobuf/duration.proto";
 
-import "dependencies/gogoproto/gogo.proto";
-
 import "temporal/api/enums/v1/workflow.proto";
 import "temporal/api/enums/v1/command_type.proto";
-import "temporal/api/enums/v1/update.proto";
 import "temporal/api/common/v1/message.proto";
 import "temporal/api/failure/v1/message.proto";
 import "temporal/api/taskqueue/v1/message.proto";
+import "temporal/api/sdk/v1/user_metadata.proto";
 
 message ScheduleActivityTaskCommandAttributes {
     string activity_id = 1;
@@ -57,7 +55,7 @@ message ScheduleActivityTaskCommandAttributes {
     //
     // (-- api-linter: core::0140::prepositions=disabled
     //     aip.dev/not-precedent: "to" is used to indicate interval. --)
-    google.protobuf.Duration schedule_to_close_timeout = 7 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration schedule_to_close_timeout = 7;
     // Limits the time an activity task can stay in a task queue before a worker picks it up. The
     // "schedule" time is when the most recent retry is scheduled. This timeout should usually not
     // be set: it's useful in specific scenarios like worker-specific task queues. This timeout is
@@ -68,15 +66,15 @@ message ScheduleActivityTaskCommandAttributes {
     //
     // (-- api-linter: core::0140::prepositions=disabled
     //     aip.dev/not-precedent: "to" is used to indicate interval. --)
-    google.protobuf.Duration schedule_to_start_timeout = 8 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration schedule_to_start_timeout = 8;
     // Maximum time an activity is allowed to execute after being picked up by a worker. This
     // timeout is always retryable. Either this or `schedule_to_close_timeout` must be specified.
     //
     // (-- api-linter: core::0140::prepositions=disabled
     //     aip.dev/not-precedent: "to" is used to indicate interval. --)
-    google.protobuf.Duration start_to_close_timeout = 9 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration start_to_close_timeout = 9;
     // Maximum permitted time between successful worker heartbeats.
-    google.protobuf.Duration heartbeat_timeout = 10 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration heartbeat_timeout = 10;
     // Activities are provided by a default retry policy which is controlled through the service's
     // dynamic configuration. Retries will be attempted until `schedule_to_close_timeout` has
     // elapsed. To disable retries set retry_policy.maximum_attempts to 1.
@@ -84,6 +82,9 @@ message ScheduleActivityTaskCommandAttributes {
     // Request to start the activity directly bypassing matching service and worker polling
     // The slot for executing the activity should be reserved when setting this field to true.
     bool request_eager_execution = 12;
+    // If this is set, the activity would be assigned to the Build ID of the workflow. Otherwise,
+    // Assignment rules of the activity's Task Queue will be used to determine the Build ID.
+    bool use_workflow_build_id = 13;
 }
 
 message RequestCancelActivityTaskCommandAttributes {
@@ -99,7 +100,7 @@ message StartTimerCommandAttributes {
     //
     // (-- api-linter: core::0140::prepositions=disabled
     //     aip.dev/not-precedent: "to" is used to indicate interval. --)
-    google.protobuf.Duration start_to_fire_timeout = 2 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration start_to_fire_timeout = 2;
 }
 
 message CompleteWorkflowExecutionCommandAttributes {
@@ -155,6 +156,13 @@ message UpsertWorkflowSearchAttributesCommandAttributes {
     temporal.api.common.v1.SearchAttributes search_attributes = 1;
 }
 
+message ModifyWorkflowPropertiesCommandAttributes {
+    // If set, update the workflow memo with the provided values. The values will be merged with
+    // the existing memo. If the user wants to delete values, a default/empty Payload should be
+    // used as the value for the key being deleted.
+    temporal.api.common.v1.Memo upserted_memo = 1;
+}
+
 message RecordMarkerCommandAttributes {
     string marker_name = 1;
     map<string, temporal.api.common.v1.Payloads> details = 2;
@@ -168,11 +176,11 @@ message ContinueAsNewWorkflowExecutionCommandAttributes {
     temporal.api.common.v1.Payloads input = 3;
 
     // Timeout of a single workflow run.
-    google.protobuf.Duration workflow_run_timeout = 4 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_run_timeout = 4;
     // Timeout of a single workflow task.
-    google.protobuf.Duration workflow_task_timeout = 5 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_task_timeout = 5;
     // How long the workflow start will be delayed - not really a "backoff" in the traditional sense.
-    google.protobuf.Duration backoff_start_interval = 6 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration backoff_start_interval = 6;
     temporal.api.common.v1.RetryPolicy retry_policy = 7;
     // Should be removed
     temporal.api.enums.v1.ContinueAsNewInitiator initiator = 8;
@@ -185,6 +193,9 @@ message ContinueAsNewWorkflowExecutionCommandAttributes {
     temporal.api.common.v1.Header header = 12;
     temporal.api.common.v1.Memo memo = 13;
     temporal.api.common.v1.SearchAttributes search_attributes = 14;
+    // If this is set, the new execution inherits the Build ID of the current execution. Otherwise,
+    // the assignment rules will be used to independently assign a Build ID to the new execution.
+    bool inherit_build_id = 15;
 
     // `workflow_execution_timeout` is omitted as it shouldn't be overridden from within a workflow.
 }
@@ -196,11 +207,11 @@ message StartChildWorkflowExecutionCommandAttributes {
     temporal.api.taskqueue.v1.TaskQueue task_queue = 4;
     temporal.api.common.v1.Payloads input = 5;
     // Total workflow execution timeout including retries and continue as new.
-    google.protobuf.Duration workflow_execution_timeout = 6 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_execution_timeout = 6;
     // Timeout of a single workflow run.
-    google.protobuf.Duration workflow_run_timeout = 7 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_run_timeout = 7;
     // Timeout of a single workflow task.
-    google.protobuf.Duration workflow_task_timeout = 8 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration workflow_task_timeout = 8;
     // Default: PARENT_CLOSE_POLICY_TERMINATE.
     temporal.api.enums.v1.ParentClosePolicy parent_close_policy = 9;
     string control = 10;
@@ -212,35 +223,63 @@ message StartChildWorkflowExecutionCommandAttributes {
     temporal.api.common.v1.Header header = 14;
     temporal.api.common.v1.Memo memo = 15;
     temporal.api.common.v1.SearchAttributes search_attributes = 16;
+    // If this is set, the child workflow inherits the Build ID of the parent. Otherwise, the assignment
+    // rules of the child's Task Queue will be used to independently assign a Build ID to it.
+    bool inherit_build_id = 17;
 }
 
-message AcceptWorkflowUpdateCommandAttributes {
-    // An opaque token that can be used to retrieve the update result via
-    // polling if it is not returned as part of the gRPC response
-    bytes update_token = 1;
+message ProtocolMessageCommandAttributes {
+    // The message ID of the message to which this command is a pointer.
+    string message_id = 1;
 }
 
-message CompleteWorkflowUpdateCommandAttributes {
-    // An opaque token that can be used to retrieve the update result via
-    // polling if it is not returned as part of the gRPC response
-    bytes update_token = 1;
+message ScheduleNexusOperationCommandAttributes {
+    // Endpoint name, must exist in the endpoint registry or this command will fail.
+    string endpoint = 1;
+    // Service name.
+    string service = 2;
+    // Operation name.
+    string operation = 3;
+    // Input for the operation. The server converts this into Nexus request content and the appropriate content headers
+    // internally when sending the StartOperation request. On the handler side, if it is also backed by Temporal, the
+    // content is transformed back to the original Payload sent in this command.
+    temporal.api.common.v1.Payload input = 4;
+    // Schedule-to-close timeout for this operation.
+    // Indicates how long the caller is willing to wait for operation completion.
+    // Calls are retried internally by the server.
+    // (-- api-linter: core::0140::prepositions=disabled
+    //     aip.dev/not-precedent: "to" is used to indicate interval. --)
+    google.protobuf.Duration schedule_to_close_timeout = 5;
 
-    // Whether the server should attempt to bypass making this update rejection
-    // durable in history. This field is only consulted when the result field
-    // indicates failure. Leaving this field in its default state (i.e.
-    // UPDATE_WORKFLOW_REJECTION_DURABILITY_PREFERENCE_UNSPECIFIED) will result
-    // in making the rejection durable.
-    temporal.api.enums.v1.UpdateWorkflowRejectionDurabilityPreference durability_preference = 2;
+    // Header to attach to the Nexus request.
+    // Users are responsible for encrypting sensitive data in this header as it is stored in workflow history and
+    // transmitted to external services as-is.
+    // This is useful for propagating tracing information.
+    // Note these headers are not the same as Temporal headers on internal activities and child workflows, these are
+    // transmitted to Nexus operations that may be external and are not traditional payloads.
+    map<string, string> nexus_header = 6;
+}
 
-    // The success or failure output of the update
-    oneof result {
-        temporal.api.common.v1.Payloads success = 3;
-        temporal.api.failure.v1.Failure failure = 4;
-    }
+message RequestCancelNexusOperationCommandAttributes {
+    // The `NEXUS_OPERATION_SCHEDULED` event ID (a unique identifier) for the operation to be canceled.
+    // The operation may ignore cancellation and end up with any completion state.
+    int64 scheduled_event_id = 1;
 }
 
 message Command {
     temporal.api.enums.v1.CommandType command_type = 1;
+    // Metadata on the command. This is sometimes carried over to the history event if one is
+    // created as a result of the command. Most commands won't have this information, and how this
+    // information is used is dependent upon the interface that reads it.
+    //
+    // Current well-known uses:
+    //  * start_child_workflow_execution_command_attributes - populates
+    //    temporal.api.workflow.v1.WorkflowExecutionInfo.user_metadata where the summary and details
+    //    are used by user interfaces to show fixed as-of-start workflow summary and details.
+    //  * start_timer_command_attributes - populates temporal.api.history.v1.HistoryEvent for timer
+    //    started where the summary is used to identify the timer.
+    temporal.api.sdk.v1.UserMetadata user_metadata = 301;
+    // The command details. The type must match that in `command_type`.
     oneof attributes {
         ScheduleActivityTaskCommandAttributes schedule_activity_task_command_attributes = 2;
         StartTimerCommandAttributes start_timer_command_attributes = 3;
@@ -255,7 +294,11 @@ message Command {
         StartChildWorkflowExecutionCommandAttributes start_child_workflow_execution_command_attributes = 12;
         SignalExternalWorkflowExecutionCommandAttributes signal_external_workflow_execution_command_attributes = 13;
         UpsertWorkflowSearchAttributesCommandAttributes upsert_workflow_search_attributes_command_attributes = 14;
-        AcceptWorkflowUpdateCommandAttributes accept_workflow_update_command_attributes = 15;
-        CompleteWorkflowUpdateCommandAttributes complete_workflow_update_command_attributes = 16;
+        ProtocolMessageCommandAttributes protocol_message_command_attributes = 15;
+        // 16 is available for use - it was used as part of a prototype that never made it into a release
+        ModifyWorkflowPropertiesCommandAttributes modify_workflow_properties_command_attributes = 17;
+
+        ScheduleNexusOperationCommandAttributes schedule_nexus_operation_command_attributes = 18;
+        RequestCancelNexusOperationCommandAttributes request_cancel_nexus_operation_command_attributes = 19;
     }
 }

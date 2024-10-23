@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package master_pb;
 
-option go_package = "github.com/chrislusf/seaweedfs/weed/pb/master_pb";
+option go_package = "github.com/seaweedfs/seaweedfs/weed/pb/master_pb";
 
 //////////////////////////////////////////////////
 
@@ -15,6 +15,8 @@ service Seaweed {
   }
   rpc Assign (AssignRequest) returns (AssignResponse) {
   }
+  rpc StreamAssign (stream AssignRequest) returns (stream AssignResponse) {
+  }
   rpc Statistics (StatisticsRequest) returns (StatisticsResponse) {
   }
   rpc CollectionList (CollectionListRequest) returns (CollectionListResponse) {
@@ -26,6 +28,12 @@ service Seaweed {
   rpc LookupEcVolume (LookupEcVolumeRequest) returns (LookupEcVolumeResponse) {
   }
   rpc VacuumVolume (VacuumVolumeRequest) returns (VacuumVolumeResponse) {
+  }
+  rpc DisableVacuum (DisableVacuumRequest) returns (DisableVacuumResponse) {
+  }
+  rpc EnableVacuum (EnableVacuumRequest) returns (EnableVacuumResponse) {
+  }
+  rpc VolumeMarkReadonly (VolumeMarkReadonlyRequest) returns (VolumeMarkReadonlyResponse) {
   }
   rpc GetMasterConfiguration (GetMasterConfigurationRequest) returns (GetMasterConfigurationResponse) {
   }
@@ -42,6 +50,8 @@ service Seaweed {
   rpc RaftAddServer (RaftAddServerRequest) returns (RaftAddServerResponse) {
   }
   rpc RaftRemoveServer (RaftRemoveServerRequest) returns (RaftRemoveServerResponse) {
+  }
+  rpc VolumeGrow (VolumeGrowRequest) returns (VolumeGrowResponse) {
   }
 }
 
@@ -80,6 +90,7 @@ message HeartbeatResponse {
   uint32 metrics_interval_seconds = 4;
   repeated StorageBackend storage_backends = 5;
   repeated string duplicated_uuids = 6;
+  bool preallocate = 7;
 }
 
 message VolumeInformationMessage {
@@ -114,6 +125,7 @@ message VolumeEcShardInformationMessage {
   string collection = 2;
   uint32 ec_index_bits = 3;
   string disk_type = 4;
+  uint64 destroy_time = 5; // used to record the destruction time of ec volume
 }
 
 message StorageBackend {
@@ -139,6 +151,8 @@ message KeepConnectedRequest {
   string client_address = 3;
   string version = 4;
   string filer_group = 5;
+  string data_center = 6;
+  string rack = 7;
 }
 
 message VolumeLocation {
@@ -156,7 +170,6 @@ message VolumeLocation {
 message ClusterNodeUpdate {
   string node_type = 1;
   string address = 2;
-  bool is_leader = 3;
   bool is_add = 4;
   string filer_group = 5;
   int64 created_at_ns = 6;
@@ -185,6 +198,7 @@ message Location {
   string url = 1;
   string public_url = 2;
   uint32 grpc_port = 3;
+  string data_center = 4;
 }
 
 message AssignRequest {
@@ -196,9 +210,22 @@ message AssignRequest {
   string rack = 6;
   string data_node = 7;
   uint32 memory_map_max_size_mb = 8;
-  uint32 Writable_volume_count = 9;
+  uint32 writable_volume_count = 9;
   string disk_type = 10;
 }
+
+message VolumeGrowRequest {
+  uint32 writable_volume_count = 1;
+  string replication = 2;
+  string collection = 3;
+  string ttl = 4;
+  string data_center = 5;
+  string rack = 6;
+  string data_node = 7;
+  uint32 memory_map_max_size_mb = 8;
+  string disk_type = 9;
+}
+
 message AssignResponse {
   string fid = 1;
   uint64 count = 4;
@@ -300,6 +327,30 @@ message VacuumVolumeRequest {
 message VacuumVolumeResponse {
 }
 
+message DisableVacuumRequest {
+}
+message DisableVacuumResponse {
+}
+
+message EnableVacuumRequest {
+}
+message EnableVacuumResponse {
+}
+
+message VolumeMarkReadonlyRequest {
+  string ip = 1;
+  uint32 port = 2;
+  uint32 volume_id = 4;
+  string collection = 5;
+  uint32 replica_placement = 6;
+  uint32 version = 7;
+  uint32 ttl = 8;
+  string disk_type = 9;
+  bool is_readonly = 10;
+}
+message VolumeMarkReadonlyResponse {
+}
+
 message GetMasterConfigurationRequest {
 }
 message GetMasterConfigurationResponse {
@@ -315,13 +366,15 @@ message GetMasterConfigurationResponse {
 message ListClusterNodesRequest {
   string client_type = 1;
   string filer_group = 2;
+  int32 limit = 4;
 }
 message ListClusterNodesResponse {
   message ClusterNode {
     string address = 1;
     string version = 2;
-    bool is_leader = 3;
     int64 created_at_ns = 4;
+    string data_center = 5;
+    string rack = 6;
   }
   repeated ClusterNode cluster_nodes = 1;
 }
@@ -377,7 +430,11 @@ message RaftListClusterServersResponse {
   message ClusterServers {
     string id = 1;
     string address = 2;
-    string suffrage = 3; //
+    string suffrage = 3;
+    bool   isLeader = 4;
   }
   repeated ClusterServers cluster_servers = 1;
+}
+
+message VolumeGrowResponse {
 }
