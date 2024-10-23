@@ -63,7 +63,7 @@ _dir="${dir}"
 echo -e "\\n# synching ${repo}"`,
     // `[ ! -e ${dir} ] || git -C ${dir} remote set-url origin ${git}`,
     // update shallow clone
-    `[ ! -e $_dir ] || [ $(($(date +%s) - $(stat -c %Y "$_dir"))) -lt 1800 ] || ( git -C $_dir fetch --depth 1 && git -C $_dir reset --hard origin && touch $_dir )`,
+    `[ ! -e $_dir ] || [ $(($(date +%s) - $(stat -c %Y "$_dir"))) -lt 3600 ] || ( git -C $_dir fetch --depth 1 && git -C $_dir reset --hard origin && touch $_dir )`,
     // `[ -e ${dir} ] || git clone --depth 1 ${git} ${dir}`,
     `[ -e $_dir ] || git clone --depth 1 ${git} $_dir`,
     // sync

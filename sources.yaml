@@ -229,12 +229,26 @@
   sync:
     csi.proto: csi/
 
+- repo: chromium/chromium
+  tags: browser
+  enabled: false
+  sync:
+    ./: chromium/
+
+- repo: apple/coremltools
+  tags: ai
+  enabled: false
+  sync:
+    mlmodel/format/: coremltools/
+
 # Bazel
 # https://github.com/search?q=repo%3Abazelbuild%2Fbazel%20path%3A*.proto&type=code
+# https://github.com/search?q=repo%3Aapple%2Fcoremltools%20path%3A*.proto&type=code
 # chromium
-# ZIP 1.7G
+# ZIP 1.7G, Unzip 4.8G
 # should use the archive mode
 # https://github.com/search?q=repo%3Achromium%2Fchromium%20path%3A*.proto&type=code
+# rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/chromium/ chromium/
 
 # - Apicurio
 # - Appwrite

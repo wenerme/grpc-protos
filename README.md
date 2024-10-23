@@ -14,10 +14,12 @@ repo | stats | tags
 ---|---|---
 [adap/flower](https://github.com/adap/flower) | ![stars](https://img.shields.io/github/stars/adap/flower) | ai
 [Alluxio/alluxio](https://github.com/Alluxio/alluxio) | ![stars](https://img.shields.io/github/stars/Alluxio/alluxio) | storage
+[apple/coremltools](https://github.com/apple/coremltools) | ![stars](https://img.shields.io/github/stars/apple/coremltools) | ai
 [appleboy/gorush](https://github.com/appleboy/gorush) | ![stars](https://img.shields.io/github/stars/appleboy/gorush) | service
 [authzed/spicedb](https://github.com/authzed/spicedb) | ![stars](https://img.shields.io/github/stars/authzed/spicedb) | auth
 [camunda/camunda](https://github.com/camunda/camunda) | ![stars](https://img.shields.io/github/stars/camunda/camunda) | workflow
 [chrislusf/seaweedfs](https://github.com/chrislusf/seaweedfs) | ![stars](https://img.shields.io/github/stars/chrislusf/seaweedfs) | storage
+[chromium/chromium](https://github.com/chromium/chromium) | ![stars](https://img.shields.io/github/stars/chromium/chromium) | browser
 [cockroachdb/cockroach](https://github.com/cockroachdb/cockroach) | ![stars](https://img.shields.io/github/stars/cockroachdb/cockroach) | database
 [conductor-oss/conductor](https://github.com/conductor-oss/conductor) | ![stars](https://img.shields.io/github/stars/conductor-oss/conductor) | workflow
 [container-storage-interface/spec](https://github.com/container-storage-interface/spec) | ![stars](https://img.shields.io/github/stars/container-storage-interface/spec) | storage ,kubernetes ,plugin ,spec
