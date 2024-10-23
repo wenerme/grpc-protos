@@ -7,15 +7,22 @@
 #   sync:
 #     FROM/: TO/
 
-- repo: dexidp/dex
-  tags: auth
+- repo: protocolbuffers/protobuf
+  tags: core
   sync:
-    api/: dex/api/
+    src/google/protobuf/:
+      dir: google/protobuf/
+      exclude:
+      - "*test*"
+      - "*/"
+
 - repo: googleapis/api-common-protos
   tags: core
   sync:
     google/:
       dir: google/
+      delete: false
+
 - repo: googleapis/googleapis
   tags: cloud
   sync:
@@ -34,6 +41,11 @@
 #   tags: infra
 #   sync:
 #     pkg/: gvisor/
+
+- repo: dexidp/dex
+  tags: auth
+  sync:
+    api/: dex/api/
 
 - repo: temporalio/api
   tags: workflow

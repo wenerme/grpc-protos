@@ -44,6 +44,7 @@ repo | stats | tags
 [open-telemetry/opentelemetry-proto](https://github.com/open-telemetry/opentelemetry-proto) | ![stars](https://img.shields.io/github/stars/open-telemetry/opentelemetry-proto) | tracing ,spec
 [Permify/permify](https://github.com/Permify/permify) | ![stars](https://img.shields.io/github/stars/Permify/permify) | service
 [prometheus/prometheus](https://github.com/prometheus/prometheus) | ![stars](https://img.shields.io/github/stars/prometheus/prometheus) | tracing ,plugin
+[protocolbuffers/protobuf](https://github.com/protocolbuffers/protobuf) | ![stars](https://img.shields.io/github/stars/protocolbuffers/protobuf) | core
 [SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect) | ![stars](https://img.shields.io/github/stars/SocialSisterYi/bilibili-API-collect) | service
 [techschool/simplebank](https://github.com/techschool/simplebank) | ![stars](https://img.shields.io/github/stars/techschool/simplebank) | demo
 [temporalio/api](https://github.com/temporalio/api) | ![stars](https://img.shields.io/github/stars/temporalio/api) | workflow

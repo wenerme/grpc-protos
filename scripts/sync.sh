@@ -2,15 +2,15 @@
 #set -euxo pipefail # for debugging
 set -euo pipefail
 
-# synching dexidp/dex
-_dir="gits/dexidp/dex"
-echo -e "\n# synching dexidp/dex"
+# synching protocolbuffers/protobuf
+_dir="gits/protocolbuffers/protobuf"
+echo -e "\n# synching protocolbuffers/protobuf"
 [ ! -e $_dir ] || [ $(($(date +%s) - $(stat -c %Y "$_dir"))) -lt 3600 ] || ( git -C $_dir fetch --depth 1 && git -C $_dir reset --hard origin && touch $_dir )
-[ -e $_dir ] || git clone --depth 1 git@github.com:dexidp/dex.git $_dir
-mkdir -p dex/api/
-test -e gits/dexidp/dex/api/
-rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/dexidp/dex/api/ dex/api/
-test -z "$(find dex/api/ -maxdepth 0 -empty)"
+[ -e $_dir ] || git clone --depth 1 git@github.com:protocolbuffers/protobuf.git $_dir
+mkdir -p google/protobuf/
+test -e gits/protocolbuffers/protobuf/src/google/protobuf/
+rsync -avm  --delete --delete-excluded --exclude '*test*' --exclude '*/'  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/protocolbuffers/protobuf/src/google/protobuf/ google/protobuf/
+test -z "$(find google/protobuf/ -maxdepth 0 -empty)"
 
 
 # synching googleapis/api-common-protos
@@ -20,7 +20,7 @@ echo -e "\n# synching googleapis/api-common-protos"
 [ -e $_dir ] || git clone --depth 1 git@github.com:googleapis/api-common-protos.git $_dir
 mkdir -p google/
 test -e gits/googleapis/api-common-protos/google/
-rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/googleapis/api-common-protos/google/ google/
+rsync -avm    --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/googleapis/api-common-protos/google/ google/
 test -z "$(find google/ -maxdepth 0 -empty)"
 
 
@@ -56,6 +56,17 @@ test -z "$(find perfetto/ -maxdepth 0 -empty)"
 test -e gits/google/perfetto/protos/README.md
 rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/google/perfetto/protos/README.md perfetto/
 test -z "$(find perfetto/ -maxdepth 0 -empty)"
+
+
+# synching dexidp/dex
+_dir="gits/dexidp/dex"
+echo -e "\n# synching dexidp/dex"
+[ ! -e $_dir ] || [ $(($(date +%s) - $(stat -c %Y "$_dir"))) -lt 3600 ] || ( git -C $_dir fetch --depth 1 && git -C $_dir reset --hard origin && touch $_dir )
+[ -e $_dir ] || git clone --depth 1 git@github.com:dexidp/dex.git $_dir
+mkdir -p dex/api/
+test -e gits/dexidp/dex/api/
+rsync -avm  --delete --delete-excluded  --include '*/' --include '*.proto' --include 'README.md' --exclude="*" gits/dexidp/dex/api/ dex/api/
+test -z "$(find dex/api/ -maxdepth 0 -empty)"
 
 
 # synching temporalio/api
